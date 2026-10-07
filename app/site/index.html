@@ -334,14 +334,12 @@ const T = {
     "v_dwell": "(ง) เวลานั่งเฉลี่ย (เปิดบิล → ปิดบิล)",
     "hu_n": "จำนวน",
     "hu_row": "% ของสาขา",
-    "hu_col": "% ของชั่วโมง",
     "hu_row_note": "% ของสาขา = แต่ละแถว (สาขา) รวมเป็น 100% — ชั่วโมงไหนกินส่วนแบ่งของวันมากแค่ไหน · สีเทียบภายในแถว",
-    "hu_col_note": "% ของชั่วโมง = แต่ละคอลัมน์ (ชั่วโมง) รวมเป็น 100% ระหว่างสาขา · สีเทียบภายในคอลัมน์",
     "v_occ": "ที่นั่งถูกใช้ รายชั่วโมง",
     "occ_row": "ที่นั่งถูกใช้",
     "turns_row": "รอบ/ที่นั่ง/ชม.",
     "occ_note": "100% = ทุกที่นั่งถูกใช้ตลอดชั่วโมง · ชั่วโมงที่ ≥80% = เต็ม (คิวเกิดที่นี่ → ดูรอบต่อที่นั่ง/ชม. · เวลานั่งเฉลี่ย) · <50% = ว่าง (การตลาด)",
-    "occ_note2": "ที่นั่งถูกใช้ = คน × นาทีที่นั่ง (เปิดบิล → ปิดบิล, ทานที่ร้านเท่านั้น) ÷ (ที่นั่ง × 60) เฉลี่ยต่อวันที่เลือก · รอบ/ที่นั่ง/ชม. = บิลที่เปิดใหม่ในชั่วโมงนั้น ÷ ที่นั่ง — เต็มและรอบสูง = เต็มจริงมีคิว · เต็มแต่รอบต่ำ = นั่งนาน · คน = จำนวนที่คีย์ (วันที่เชื่อถือได้) ไม่งั้นใช้ชามหลัก + เซต · บิลแยกจ่ายนับเวลาจากเปิดบิลแม่ · บิลที่เปิด-ปิดภายใน 3 นาทีไม่นับ",
+    "occ_note2": "ที่นั่งถูกใช้ = คน × นาทีที่นั่ง (เปิดบิล → ปิดบิล, ทานที่ร้านเท่านั้น) ÷ (ที่นั่ง × 60) เฉลี่ยต่อวันที่เลือก · รอบ/ที่นั่ง/ชม. = บิลที่เปิดใหม่ในชั่วโมงนั้น ÷ ที่นั่ง — เต็มและรอบสูง = เต็มจริงมีคิว · เต็มแต่รอบต่ำ = นั่งนาน · คน = ชามหลัก + เซต ของแต่ละบิล (ไม่ใช้จำนวนลูกค้าที่คีย์ — 1 ชาม ≈ 1 คน) · บิลแยกจ่ายนับเวลาจากเปิดบิลแม่ · บิลที่เปิด-ปิดภายใน 3 นาทีไม่นับ",
     "occ_tip": "ที่นั่งถูกใช้ (ค่าจริง) {0}\nคน-นาทีเฉลี่ย/วัน {1}\nบิลที่เปิดอยู่/วัน {2}\nรอบ (บิลเปิดใหม่)/วัน {3}\nที่นั่ง {4} · {5} วัน",
     "occ_over": "เกิน 100% = คีย์จำนวนคนเกิน หรือแชร์โต๊ะ",
     "occ_mid": "50–79%",
@@ -743,14 +741,12 @@ const T = {
     "v_dwell": "(d) Average dwell time (bill opened → closed)",
     "hu_n": "Count",
     "hu_row": "% of branch",
-    "hu_col": "% of hour",
     "hu_row_note": "% of branch = each row (branch) sums to 100% — each hour’s share of that branch’s day · colours compare within the row",
-    "hu_col_note": "% of hour = each column (hour) sums to 100% across branches · colours compare within the column",
     "v_occ": "Seat occupancy by hour",
     "occ_row": "Occupied",
     "turns_row": "Turns / seat / hr",
     "occ_note": "100% = every seat used for the whole hour · hours ≥80% = full (queues form here → check turns per seat/hr · average dwell) · <50% = quiet (marketing)",
-    "occ_note2": "Occupancy = guests × minutes seated (bill opened → closed, dine-in only) ÷ (seats × 60), averaged over the selected days · Turns / seat / hr = bills opened in that hour ÷ seats — full with high turns = truly full with a queue · full with low turns = guests stay long · guests = keyed pax (trusted days) else main bowls + sets · split bills count from the master bill’s open time · bills opened and closed within 3 min are excluded",
+    "occ_note2": "Occupancy = guests × minutes seated (bill opened → closed, dine-in only) ÷ (seats × 60), averaged over the selected days · Turns / seat / hr = bills opened in that hour ÷ seats — full with high turns = truly full with a queue · full with low turns = guests stay long · guests = main bowls + sets per bill (keyed pax is not used — 1 bowl ≈ 1 person) · split bills count from the master bill’s open time · bills opened and closed within 3 min are excluded",
     "occ_tip": "Occupancy (raw) {0}\nAvg guest-minutes / day {1}\nBills open / day {2}\nTurns (bills opened) / day {3}\nSeats {4} · {5} days",
     "occ_over": "Over 100% = pax over-keyed or table sharing",
     "occ_mid": "50–79%",
@@ -1388,27 +1384,24 @@ function volumeStore() {
     for (const r of lr) { const k = id + '|' + r[a.hour]; cells[k] = (cells[k] || 0) + (metric === 'pax' ? hourCust(r) : r[a[metric]]) / days; }
   }
   for (const v of Object.values(cells)) max = Math.max(max, v);
-  // unit toggle (Point 2026-10-07): จำนวน | % ของสาขา (row sums to 100) | % ของชั่วโมง (column sums to 100)
+  // unit toggle (Point 2026-10-07): จำนวน | % ของสาขา (row sums to 100)
   const U = S.heatU, ids = selBranches().filter(id => byLoc.get(id));
   const rowSum = id => hours.reduce((s, hh) => s + (cells[id + '|' + hh] || 0), 0);
-  const colSum = hh => ids.reduce((s, id) => s + (cells[id + '|' + hh] || 0), 0);
-  const rs_ = Object.fromEntries(ids.map(id => [id, rowSum(id)])), cs_ = Object.fromEntries(hours.map(hh => [hh, colSum(hh)]));
+  const rs_ = Object.fromEntries(ids.map(id => [id, rowSum(id)]));
   const rowMax = Object.fromEntries(ids.map(id => [id, Math.max(...hours.map(hh => cells[id + '|' + hh] || 0))]));
-  const colMax = Object.fromEntries(hours.map(hh => [hh, Math.max(...ids.map(id => cells[id + '|' + hh] || 0))]));
   let body = '';
   for (const id of ids) {
     body += `<tr><td>${bn(id)}</td>` + hours.map(hh => {
       const v = cells[id + '|' + hh] || 0;
       if (U === 'row') return `<td class="n" style="${heatBg(v, rowMax[id])}">${v ? pct(div(v, rs_[id]), 0) : ''}</td>`;
-      if (U === 'col') return `<td class="n" style="${heatBg(v, colMax[hh])}">${v ? pct(div(v, cs_[hh]), 0) : ''}</td>`;
       return `<td class="n" style="${heatBg(v, max)}">${v ? fmt(v, metric === 'net' ? 0 : 1) : ''}</td>`;
     }).join('') + '</tr>';
   }
   const seg = (act, opts, cur) => '<span class="seg">' + opts.map(([k, l]) => `<button data-act="${act}" data-k="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join('') + '</span>';
   let h = '<div class="card"><b>' + t('v_heat') + '</b> ' +
     seg('heat', [['orders', t('orders')], ['pax', t('k_cust')], ['net', t('net')]], metric) + ' ' +
-    seg('heatu', [['n', t('hu_n')], ['row', t('hu_row')], ['col', t('hu_col')]], U) +
-    '<div class="note">' + t('v_avgday') + (U === 'row' ? ' · ' + t('hu_row_note') : U === 'col' ? ' · ' + t('hu_col_note') : '') + '</div>' +
+    seg('heatu', [['n', t('hu_n')], ['row', t('hu_row')]], U) +
+    '<div class="note">' + t('v_avgday') + (U === 'row' ? ' · ' + t('hu_row_note') : '') + '</div>' +
     table('<th>' + t('branch') + '</th>' + hours.map(x => `<th class="n">${x}:00</th>`).join(''), body, 'heat') + '</div>';
   // hourly seat occupancy (Point 2026-10-07, replaces the daypart utilization)
   h += occupancyCard();

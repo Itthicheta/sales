@@ -63,7 +63,7 @@ is POS-native and already mirrored in the backbone.
 | # | Section | Contents |
 |---|---|---|
 | 1 | Driver Tree (live) | volume × ticket per daypart/channel/branch with working filters (branch / day-type / date range) · pax-trust strip (see below) |
-| 2 | Volume levers | hour × branch density heatmap with unit toggle (count / % of branch / % of hour) · **hourly seat occupancy** heatmap + turns per seat per hour (see "Section 2 — volume (as built 2026-10-07)") · dead-hour revenue curve (is the 16:00-20:00 promo working?) · baseline-vs-actual anomaly (branch's own history as the baseline) · dwell by hour and by daypart |
+| 2 | Volume levers | hour × branch density heatmap with unit toggle (count / % of branch) · **hourly seat occupancy** heatmap + turns per seat per hour (see "Section 2 — volume (as built 2026-10-07)") · dead-hour revenue curve (is the 16:00-20:00 promo working?) · baseline-vs-actual anomaly (branch's own history as the baseline) · dwell by hour and by daypart |
 | 3 | Ticket levers | attach heatmap: category × channel × branch on per-MAIN-OCCASION denominator · beverage attach in 3 TIERS (water / paid / premium — Point: keep water in, the lever is tier CONVERSION, not exclusion) · PAID-OPTION attach (เกี๊ยวเพิ่ม/หมูเพิ่ม — is_paid_option; cheapest per-head lever, nobody measures it) · **OPPORTUNITY CALCULATOR: click any weak cell → "closing OCC bev gap to Silom's level = +฿X/month", ranked list = sales-meeting agenda** (centerpiece) · **TICKET & PARTY-SIZE DISTRIBUTIONS** (added 2026-10-06): histograms of bill total and pax, not just averages — solo / pair / group mix per branch × daypart, and spend-per-head by party-size bucket |
 | 4 | Options & choices | choice share per modifier group per menu (เส้น split etc., branch deltas) · unpopular tail (<2% picks → menu simplification) · **topping ROUTE analysis: same topping as option vs standalone menu line — which route per branch, price parity check** · option-to-main lift |
 | 5 | Repeat & members | member attach at POS (~1% today — headroom), repeat frequency per phone, days-since-last-visit win-back list |
@@ -73,6 +73,12 @@ is POS-native and already mirrored in the backbone.
 | 9 | **Grab** (added 2026-10-06) | Grab-only insights — subsections 9.1–9.6, see "Grab — channel switch + section 9" below. Grab ALSO appears in sections 1-4 and 6-8 via the channel switch |
 
 ## Key design decisions (Point's calls, 2026-10-06)
+- **Seat occupancy counts bowls as persons, always (Point 2026-10-07):** persons per order =
+  main_units + set_units (min 1), never keyed pax, regardless of pax_trust. Why: staff may key pax
+  wrong and people join tables later; on average 1 person = 1 main. (Still: split-bill rule counts
+  from the master bill's open time; 3–240 min filter; 10–20 h window.) Effect vs the old pax-based
+  version (30 days): total seat-minutes +5% (OCC) to +17% (Silom); 12:00 weekday occupancy Silom
+  52→64%, Gaysorn 31→36%, Sathorn 43→48%, All Seasons 61→65%, OCC 43→43%.
 - **No. of customers:** staff-keyed pax (orders.pax) AND 1-main≈1-customer
   proxy both exist. Metric **bowls ÷ keyed customers** serves double duty:
   per-branch trust check (sane ≈ 0.9-1.3; outside → tree falls back to main
@@ -124,21 +130,22 @@ is POS-native and already mirrored in the backbone.
     merged); `paid_opt` there is deprecated (0).
 - **Section 2 — volume (as built 2026-10-07, Point):**
   - **(a) density heatmap** hour × branch (orders / customers / net, avg per trading day) has a unit
-    toggle **จำนวน | % ของสาขา | % ของชั่วโมง**: % ของสาขา = each branch ROW sums to 100 (share of that
-    branch's day by hour, colour scale per row); % ของชั่วโมง = each hour COLUMN sums to 100 across the
-    selected branches (colour per column). State `S.heatU` ('n' / 'row' / 'col').
+    toggle **จำนวน | % ของสาขา**: % ของสาขา = each branch ROW sums to 100 (share of that
+    branch's day by hour, colour scale per row). State `S.heatU` ('n' / 'row'). The "% of hour"
+    (column sums to 100) option was removed 2026-10-07 — Point found it confusing.
   - **Seat occupancy by hour (ที่นั่งถูกใช้ รายชั่วโมง)** replaces the old daypart "utilization" (pax × avg
     daypart dwell ÷ seats × daypart hours — unclear, Point: "lunch is always full with queues").
     Table `sales_web.occupancy_hourly(location_id, business_date, hour, seat_minutes, bills_open, turns,
-    dwell_min_sum)` built by `build_occupancy` in tools/sales_tables.py (runs after pax_trust):
+    dwell_min_sum)` built by `build_occupancy` in tools/sales_tables.py :
     dine-in, finalized, not voided, live branches, 120 days; one row per branch × trading day × hour,
     hours = sales_web.seats open_hour..close_hour clipped to 10–20 (Rama9 10–16).
     Per order: interval = [opened_at, closed_at] Bangkok (fallback table_sessions seated_at/left_at if
     either is missing); **split children** (`pos_sale_tabs.parentsaletabid > 0`, splittabname 'Split%')
     start at their MASTER tab's opened_at (they are opened at the moment of the split, ~1 min, and were
     ~40% of Silom's lunch bills — one bill per person paying); intervals < 3 or > 240 min dropped.
-    pax_used = pax on trusted branch-days (sales_web.pax_trust) when 1–20, else main + set units (≥ 1).
-    seat_minutes = Σ pax_used × overlap minutes with the hour; bills_open = orders overlapping the hour;
+    persons = main_units + set_units of the order (≥ 1), ALWAYS — keyed pax and pax_trust are NOT used
+    (Point 2026-10-07, see Key design decisions).
+    seat_minutes = Σ persons × overlap minutes with the hour; bills_open = orders overlapping the hour;
     turns = orders OPENED in the hour; dwell_min_sum = their dwell (avg dwell by hour = dwell_min_sum ÷ turns).
     Payload feed `occupancy` cols [loc, d, hour, seat_min, bills_open, turns, dwell_sum], 90 days.
     UI: occupancy % = Σ seat_min ÷ (seats × 60 × days in the filter); display capped at 100% (raw in the
@@ -149,8 +156,7 @@ is POS-native and already mirrored in the backbone.
     60, sathorn 64, silom 73). Grab leg of section 2 unchanged (demand curve, no seat cap).
   - **(d) dwell** shows avg dwell by the hour the bill opened (feed occupancy) above the existing daypart
     table (feed dwell).
-  - Reality check (30 days to 2026-10-06, weekdays): 12:00 occupancy Silom 52%, Sathorn 44%, All Seasons
-    63%, OCC 43%, Gaysorn 31%; 16:00 all ≤ 6%; dwell 33–38 min. POS bill time does NOT show the "full"
+  - Reality check (30 days to 2026-10-06, weekdays; OLD pax-based figures — bowls-as-persons now gives Silom 64%, Sathorn 48%, All Seasons 65%, OCC 43%, Gaysorn 36% at 12:00): 16:00 all ≤ 6%; dwell 33–38 min. POS bill time does NOT show the "full"
     Point sees: at the 5-minute peak (12:20–12:30) Silom averages ~45 guests in house (62% of 73 seats,
     best day 60 = 82%), Sathorn ~33 (52%). The hourly mean dilutes a ~30-minute rush, and seat % is not
     table %: solo diners at 2-seat tables (Silom 73 seats / 34 tables) make the room look full at ~60–70% seats. Rama9 can't be measured:

@@ -564,9 +564,10 @@ def build_occupancy(cur):
                   split (dwell ~0-1 min), so they start at their MASTER tab's opened_at — without
                   this ~40% of Silom's lunch bills (one per person paying) fell under the 3-min
                   floor and their customers vanished. Intervals < 3 or > 240 min are dropped.
-      pax_used  = pax when the branch-day is trusted (sales_web.pax_trust) and 1 <= pax <= 20,
-                  else main + set units of the order (>= 1).
-    seat_minutes = sum(pax_used x overlap minutes with the hour); bills_open = orders
+      persons   = main_units + set_units of the order (>= 1) — bowls as persons, ALWAYS, never keyed
+                  pax, whatever pax_trust says (Point 2026-10-07): staff may key pax wrong and
+                  people join tables later; on average 1 person = 1 main.
+    seat_minutes = sum(persons x overlap minutes with the hour); bills_open = orders
     overlapping the hour; turns = orders OPENED in the hour; dwell_min_sum = sum of the dwell
     of those opened orders (avg dwell by hour = dwell_min_sum / turns).
     UI: occupancy % = sum(seat_minutes) / (seats x 60 x days)."""
@@ -591,14 +592,11 @@ def build_occupancy(cur):
                           else ts.seated_at end s,
                      case when mo.opened_at is not null and mo.closed_at is not null
                           then mo.closed_at else ts.left_at end e,
-                     case when coalesce(pt.trusted, false) and t.pax between 1 and 20 then t.pax
-                          else greatest(t.main_units + t.set_units, 1) end pu
+                     greatest(t.main_units + t.set_units, 1) pu
               from t_ord t
               join mp_clean.orders mo on mo.order_id = t.order_id
               left join ts on ts.order_id = t.order_id
               left join sp on sp.order_id = t.order_id
-              left join sales_web.pax_trust pt on pt.location_id = t.location_id
-                                              and pt.business_date = t.business_date
               where t.channel = 'dine_in'),
             lv as (
               select order_id, location_id, business_date, pu,
@@ -627,7 +625,7 @@ def build_occupancy(cur):
 
 BUILDERS = (build_tree, build_hourly, build_dwell, build_pax_trust, build_items, build_options,
             build_pairs, build_distributions, build_members, build_promo, build_calendar,
-            build_opportunity, build_grab_match, build_occupancy)   # occupancy after pax_trust
+            build_opportunity, build_grab_match, build_occupancy)
 
 
 def check():

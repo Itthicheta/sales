@@ -25,7 +25,7 @@ sales/
   migrations/010_sales_web_schema.sql   schema (applied 2026-10-06)
   migrations/011_seats_2026-10-07.sql   seats per branch + holidays (idempotent upsert)
   docs/plan-2026-10-06-sales-web.md     original implementation plan
-  docs/reports/2026-10-07-*.md          working reports
+  docs/reports/2026-10-07-*.md          working reports (attach sources, tree categories, occupancy)
 ```
 
 **Dependency on the backbone** (`~/mamapook-data`, github.com/Itthicheta/Mamapook-data):
@@ -63,7 +63,7 @@ is POS-native and already mirrored in the backbone.
 | # | Section | Contents |
 |---|---|---|
 | 1 | Driver Tree (live) | volume × ticket per daypart/channel/branch with working filters (branch / day-type / date range) · pax-trust strip (see below) |
-| 2 | Volume levers | seat-utilization heatmap (hour × branch; dwell measured from bill open→close, seats = Reference input Point must supply) · dead-hour revenue curve (is the 16:00-20:00 promo working?) · baseline-vs-actual anomaly (branch's own history as the baseline) |
+| 2 | Volume levers | hour × branch density heatmap with unit toggle (count / % of branch / % of hour) · **hourly seat occupancy** heatmap + turns per seat per hour (see "Section 2 — volume (as built 2026-10-07)") · dead-hour revenue curve (is the 16:00-20:00 promo working?) · baseline-vs-actual anomaly (branch's own history as the baseline) · dwell by hour and by daypart |
 | 3 | Ticket levers | attach heatmap: category × channel × branch on per-MAIN-OCCASION denominator · beverage attach in 3 TIERS (water / paid / premium — Point: keep water in, the lever is tier CONVERSION, not exclusion) · PAID-OPTION attach (เกี๊ยวเพิ่ม/หมูเพิ่ม — is_paid_option; cheapest per-head lever, nobody measures it) · **OPPORTUNITY CALCULATOR: click any weak cell → "closing OCC bev gap to Silom's level = +฿X/month", ranked list = sales-meeting agenda** (centerpiece) · **TICKET & PARTY-SIZE DISTRIBUTIONS** (added 2026-10-06): histograms of bill total and pax, not just averages — solo / pair / group mix per branch × daypart, and spend-per-head by party-size bucket |
 | 4 | Options & choices | choice share per modifier group per menu (เส้น split etc., branch deltas) · unpopular tail (<2% picks → menu simplification) · **topping ROUTE analysis: same topping as option vs standalone menu line — which route per branch, price parity check** · option-to-main lift |
 | 5 | Repeat & members | member attach at POS (~1% today — headroom), repeat frequency per phone, days-since-last-visit win-back list |
@@ -122,6 +122,40 @@ is POS-native and already mirrored in the backbone.
     paid ≤ ฿40; premium above.
   - Grab basket (9.6 / section 3 Grab) uses the same logic (free items out, option picks
     merged); `paid_opt` there is deprecated (0).
+- **Section 2 — volume (as built 2026-10-07, Point):**
+  - **(a) density heatmap** hour × branch (orders / customers / net, avg per trading day) has a unit
+    toggle **จำนวน | % ของสาขา | % ของชั่วโมง**: % ของสาขา = each branch ROW sums to 100 (share of that
+    branch's day by hour, colour scale per row); % ของชั่วโมง = each hour COLUMN sums to 100 across the
+    selected branches (colour per column). State `S.heatU` ('n' / 'row' / 'col').
+  - **Seat occupancy by hour (ที่นั่งถูกใช้ รายชั่วโมง)** replaces the old daypart "utilization" (pax × avg
+    daypart dwell ÷ seats × daypart hours — unclear, Point: "lunch is always full with queues").
+    Table `sales_web.occupancy_hourly(location_id, business_date, hour, seat_minutes, bills_open, turns,
+    dwell_min_sum)` built by `build_occupancy` in tools/sales_tables.py (runs after pax_trust):
+    dine-in, finalized, not voided, live branches, 120 days; one row per branch × trading day × hour,
+    hours = sales_web.seats open_hour..close_hour clipped to 10–20 (Rama9 10–16).
+    Per order: interval = [opened_at, closed_at] Bangkok (fallback table_sessions seated_at/left_at if
+    either is missing); **split children** (`pos_sale_tabs.parentsaletabid > 0`, splittabname 'Split%')
+    start at their MASTER tab's opened_at (they are opened at the moment of the split, ~1 min, and were
+    ~40% of Silom's lunch bills — one bill per person paying); intervals < 3 or > 240 min dropped.
+    pax_used = pax on trusted branch-days (sales_web.pax_trust) when 1–20, else main + set units (≥ 1).
+    seat_minutes = Σ pax_used × overlap minutes with the hour; bills_open = orders overlapping the hour;
+    turns = orders OPENED in the hour; dwell_min_sum = their dwell (avg dwell by hour = dwell_min_sum ÷ turns).
+    Payload feed `occupancy` cols [loc, d, hour, seat_min, bills_open, turns, dwell_sum], 90 days.
+    UI: occupancy % = Σ seat_min ÷ (seats × 60 × days in the filter); display capped at 100% (raw in the
+    tooltip; > 100% = pax over-keying or table sharing); colours green ≥ 80 เต็ม / amber 50–79 / grey < 50 ว่าง;
+    lunch 11–13 and dinner 17–20 column groups shaded like the tree table; second row per branch =
+    **turns per seat per hour** (turns ÷ seats ÷ days); tooltip = raw %, avg guest-minutes/day, bills
+    open/day, turns/day, seats, days. Seats: sales_web.seats (rama9 16, gaysorn 54, occ 66, all-seasons
+    60, sathorn 64, silom 73). Grab leg of section 2 unchanged (demand curve, no seat cap).
+  - **(d) dwell** shows avg dwell by the hour the bill opened (feed occupancy) above the existing daypart
+    table (feed dwell).
+  - Reality check (30 days to 2026-10-06, weekdays): 12:00 occupancy Silom 52%, Sathorn 44%, All Seasons
+    63%, OCC 43%, Gaysorn 31%; 16:00 all ≤ 6%; dwell 33–38 min. POS bill time does NOT show the "full"
+    Point sees: at the 5-minute peak (12:20–12:30) Silom averages ~45 guests in house (62% of 73 seats,
+    best day 60 = 82%), Sathorn ~33 (52%). The hourly mean dilutes a ~30-minute rush, and seat % is not
+    table %: solo diners at 2-seat tables (Silom 73 seats / 34 tables) make the room look full at ~60–70% seats. Rama9 can't be measured:
+    ~90% of its dine-in bills are opened and closed within 3 min (counter-style keying) and are dropped.
+    Report: docs/reports/2026-10-07-occupancy.md.
 - Models = monthly insight layer, paired with weather + holidays + payday.
 - Build order: section 1+3 (+ pax-trust check) first — calculator is the
   payoff; then 2 (needs seats per branch from Point); rest follow.
@@ -285,7 +319,7 @@ role mamapook_pipeline via pooler; see Project Data Backbone.md):
   Project Sales Web.md) same session as any change; Project Data Backbone.md links here
 
 ## Open items for Point
-- Seats per branch (+ daypart hours) for utilization
+- ~~Seats per branch~~ (done 2026-10-07, migrations/011) — Rama9 dine-in keying (bills opened+closed at once) blocks its occupancy
 - Same-login vs separate site decision
 - First milestone sign-off: sections 1+3 + pax-trust check
 

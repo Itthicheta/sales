@@ -79,7 +79,7 @@ DAYPART = f"""case when extract(hour from o.closed_at {BKK}) between 11 and 13 t
 TABLES = ["tree_daily", "hourly", "dwell", "pax_trust", "item_daily", "option_monthly",
           "option_by_dish", "topping_route", "pair_lift", "party_size", "ticket_hist",
           "members_monthly", "member_visits", "promo_daily", "set_monthly", "calendar_daily",
-          "opportunity", "grab_match"]
+          "opportunity", "grab_match", "occupancy_hourly"]
 
 
 def rebuild(cur, table: str, ddl_cols: str, select_sql: str):
@@ -554,11 +554,80 @@ def build_grab_match(cur):
         .replace("__DAYS__", str(WINDOW_DAYS + 10)))
 
 
+def build_occupancy(cur):
+    """Hourly seat occupancy (Point 2026-10-07, replaces the daypart utilization).
+    One row per live branch x trading day (any dine-in order) x hour, hours = sales_web.seats
+    open_hour..close_hour clipped to 10-20. Per dine-in order (finalized, not voided — t_ord):
+      interval  = [opened_at, closed_at] (Bangkok); if either is missing ->
+                  mp_clean.table_sessions seated_at/left_at. SPLIT CHILDREN (pos_sale_tabs
+                  parentsaletabid > 0, splittabname 'Split%') are opened at the moment of the
+                  split (dwell ~0-1 min), so they start at their MASTER tab's opened_at — without
+                  this ~40% of Silom's lunch bills (one per person paying) fell under the 3-min
+                  floor and their customers vanished. Intervals < 3 or > 240 min are dropped.
+      pax_used  = pax when the branch-day is trusted (sales_web.pax_trust) and 1 <= pax <= 20,
+                  else main + set units of the order (>= 1).
+    seat_minutes = sum(pax_used x overlap minutes with the hour); bills_open = orders
+    overlapping the hour; turns = orders OPENED in the hour; dwell_min_sum = sum of the dwell
+    of those opened orders (avg dwell by hour = dwell_min_sum / turns).
+    UI: occupancy % = sum(seat_minutes) / (seats x 60 x days)."""
+    rebuild(cur, "occupancy_hourly",
+        """location_id text, business_date date, hour int, seat_minutes numeric, bills_open int,
+           turns int, dwell_min_sum numeric""",
+        f"""with ts as (
+              select order_id, min(seated_at) seated_at, max(left_at) left_at
+              from mp_clean.table_sessions where not coalesce(is_cancelled, false) group by 1),
+            sp as (   -- split child -> its master order's opened_at
+              select st.branchid || '-' || st.saleid order_id, min(mo.opened_at) master_open
+              from mp_raw.pos_sale_tabs st
+              join mp_raw.pos_sale_tabs m on m.branchid = st.branchid and m.saletabid = st.parentsaletabid
+              join mp_clean.orders mo on mo.order_id = m.branchid || '-' || m.saleid
+              where st.parentsaletabid > 0 and st.splittabname like 'Split%'
+                and st.starttime >= (current_date - {WINDOW_DAYS + 2})::timestamp
+              group by 1),
+            iv as (
+              select t.order_id, t.location_id, t.business_date,
+                     case when mo.opened_at is not null and mo.closed_at is not null
+                          then least(coalesce(sp.master_open, mo.opened_at), mo.opened_at)
+                          else ts.seated_at end s,
+                     case when mo.opened_at is not null and mo.closed_at is not null
+                          then mo.closed_at else ts.left_at end e,
+                     case when coalesce(pt.trusted, false) and t.pax between 1 and 20 then t.pax
+                          else greatest(t.main_units + t.set_units, 1) end pu
+              from t_ord t
+              join mp_clean.orders mo on mo.order_id = t.order_id
+              left join ts on ts.order_id = t.order_id
+              left join sp on sp.order_id = t.order_id
+              left join sales_web.pax_trust pt on pt.location_id = t.location_id
+                                              and pt.business_date = t.business_date
+              where t.channel = 'dine_in'),
+            lv as (
+              select order_id, location_id, business_date, pu,
+                     s {BKK} sl, e {BKK} el, extract(epoch from e - s) / 60 dm
+              from iv where e - s between interval '3 min' and interval '240 min'),
+            grid as (
+              select d.location_id, d.business_date, h,
+                     d.business_date + h * interval '1 hour' hs
+              from (select distinct location_id, business_date from t_ord where channel = 'dine_in') d
+              join sales_web.seats s on s.location_id = d.location_id
+              cross join lateral generate_series(greatest(coalesce(s.open_hour, 10), 10),
+                                                 least(coalesce(s.close_hour, 20), 20)) h)
+            select g.location_id, g.business_date, g.h,
+                   round(coalesce(sum(lv.pu * extract(epoch from least(lv.el, g.hs + interval '1 hour')
+                                                               - greatest(lv.sl, g.hs)) / 60), 0), 1),
+                   count(lv.order_id),
+                   count(*) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'),
+                   round(coalesce(sum(lv.dm) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0), 1)
+            from grid g
+            left join lv on lv.location_id = g.location_id and lv.business_date = g.business_date
+                        and lv.sl < g.hs + interval '1 hour' and lv.el > g.hs
+            group by 1, 2, 3""")
+
+
 # ---------- Step 7: main ----------
 
 BUILDERS = (build_tree, build_hourly, build_dwell, build_pax_trust, build_items, build_options,
             build_pairs, build_distributions, build_members, build_promo, build_calendar,
-            build_opportunity, build_grab_match)
+            build_opportunity, build_grab_match, build_occupancy)   # occupancy after pax_trust
 
 
 def check():

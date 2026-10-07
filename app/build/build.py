@@ -137,6 +137,15 @@ def build():
                avg_dwell_min avg_min, avg_party
         from sales_web.dwell where business_date >= current_date - 90
         order by business_date, location_id, daypart""")
+    # hourly seat occupancy (2026-10-07, replaces the daypart utilization): dine-in only,
+    # occupancy % in the UI = sum(seat_min) / (seats x 60 x days); avg dwell by hour =
+    # dwell_sum / turns (dwell of orders OPENED in that hour). See sales_tables.build_occupancy.
+    data["occupancy"] = feed("occupancy", """
+        select location_id loc, to_char(business_date,'YYYY-MM-DD') d, hour, seat_minutes seat_min,
+               bills_open, turns,
+               dwell_min_sum dwell_sum   -- appended: sum of dwell minutes of the `turns` orders
+        from sales_web.occupancy_hourly where business_date >= current_date - 90
+        order by business_date, location_id, hour""")
     data["pax_trust"] = feed("pax_trust", """
         select location_id loc, to_char(business_date,'YYYY-MM-DD') d, bowls, keyed_pax keyed,
                ratio, trusted
@@ -318,7 +327,7 @@ def build():
                                          from sales_web.grab_orders order by 1""")]
     data["grab"] = g
     dt_ = data["data_through"]
-    daily = [(k, data[k]) for k in ("tree", "hourly", "dwell", "pax_trust", "items", "promo", "calendar")] + \
+    daily = [(k, data[k]) for k in ("tree", "hourly", "dwell", "occupancy", "pax_trust", "items", "promo", "calendar")] + \
             [("grab." + k, g[k]) for k in ("daily", "orders", "menu", "offers", "peak", "miwi", "match")]
     data["today_partial"] = bool(dt_) and any(
         r[COLS[k].index("d")] > dt_ for k, f in daily for r in f)

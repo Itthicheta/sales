@@ -62,6 +62,7 @@ tr.hl td { background:color-mix(in srgb, #e6a028 16%, transparent); }
 /* tree table column groups (Point 2026-10-07): drinks / food attach / money */
 td.g1, th.g1 { background:rgba(42,120,214,.07); } td.g2, th.g2 { background:rgba(26,127,60,.07); }
 td.gs, th.gs { border-left:2px solid var(--line); }
+table.occ td:first-child, table.occh td:first-child { white-space:nowrap; }
 th.grp { text-align:center; font-size:10px; color:var(--muted); border-bottom:none; padding-bottom:0; }
 .tag { display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; }
 .tag.warn { background:var(--warn); } .tag.bad { background:var(--bad); } .tag.ok { background:var(--ok); }
@@ -325,13 +326,27 @@ const T = {
     "wait_seats": "รอข้อมูลที่นั่ง",
     "u_low": "ว่าง",
     "u_full": "เต็ม",
-    "v_util": "อัตราการใช้ที่นั่ง (ลูกค้า×เวลานั่ง ÷ ที่นั่ง×ชั่วโมง)",
     "v_dead": "(ข) ชั่วโมงเงียบ — ยอดสุทธิรายชั่วโมง",
     "v_band": "แถบ 16:00–20:00 = {0} ของยอดทั้งวัน (฿{1})",
     "pct_day": "% ของวัน",
     "v_exp": "(ค) ปกติ vs จริง",
     "v_exp_note": "ปกติ = ค่าคาดจากประวัติของสาขาเอง · แดง &lt; −15% · เขียว &gt; +15% · 🎌 วันหยุด · 🌧 ฝน ≥ 1 มม.",
     "v_dwell": "(ง) เวลานั่งเฉลี่ย (เปิดบิล → ปิดบิล)",
+    "hu_n": "จำนวน",
+    "hu_row": "% ของสาขา",
+    "hu_col": "% ของชั่วโมง",
+    "hu_row_note": "% ของสาขา = แต่ละแถว (สาขา) รวมเป็น 100% — ชั่วโมงไหนกินส่วนแบ่งของวันมากแค่ไหน · สีเทียบภายในแถว",
+    "hu_col_note": "% ของชั่วโมง = แต่ละคอลัมน์ (ชั่วโมง) รวมเป็น 100% ระหว่างสาขา · สีเทียบภายในคอลัมน์",
+    "v_occ": "ที่นั่งถูกใช้ รายชั่วโมง",
+    "occ_row": "ที่นั่งถูกใช้",
+    "turns_row": "รอบ/ที่นั่ง/ชม.",
+    "occ_note": "100% = ทุกที่นั่งถูกใช้ตลอดชั่วโมง · ชั่วโมงที่ ≥80% = เต็ม (คิวเกิดที่นี่ → ดูรอบต่อที่นั่ง/ชม. · เวลานั่งเฉลี่ย) · <50% = ว่าง (การตลาด)",
+    "occ_note2": "ที่นั่งถูกใช้ = คน × นาทีที่นั่ง (เปิดบิล → ปิดบิล, ทานที่ร้านเท่านั้น) ÷ (ที่นั่ง × 60) เฉลี่ยต่อวันที่เลือก · รอบ/ที่นั่ง/ชม. = บิลที่เปิดใหม่ในชั่วโมงนั้น ÷ ที่นั่ง — เต็มและรอบสูง = เต็มจริงมีคิว · เต็มแต่รอบต่ำ = นั่งนาน · คน = จำนวนที่คีย์ (วันที่เชื่อถือได้) ไม่งั้นใช้ชามหลัก + เซต · บิลแยกจ่ายนับเวลาจากเปิดบิลแม่ · บิลที่เปิด-ปิดภายใน 3 นาทีไม่นับ",
+    "occ_tip": "ที่นั่งถูกใช้ (ค่าจริง) {0}\nคน-นาทีเฉลี่ย/วัน {1}\nบิลที่เปิดอยู่/วัน {2}\nรอบ (บิลเปิดใหม่)/วัน {3}\nที่นั่ง {4} · {5} วัน",
+    "occ_over": "เกิน 100% = คีย์จำนวนคนเกิน หรือแชร์โต๊ะ",
+    "occ_mid": "50–79%",
+    "v_dwell_h": "เวลานั่งเฉลี่ย (นาที) ตามชั่วโมงที่เปิดบิล",
+    "n_bills": "{0} บิล",
     "tables": "โต๊ะ",
     "avg_min": "นาทีเฉลี่ย",
     "ppl_table": "คน/โต๊ะ",
@@ -720,13 +735,27 @@ const T = {
     "wait_seats": "Awaiting seat data",
     "u_low": "Quiet",
     "u_full": "Full",
-    "v_util": "Seat utilization (customers × dwell ÷ seats × hours)",
     "v_dead": "(b) Dead hours — net sales by hour",
     "v_band": "16:00–20:00 band = {0} of the day’s sales (฿{1})",
     "pct_day": "% of day",
     "v_exp": "(c) Expected vs actual",
     "v_exp_note": "Expected = forecast from the branch’s own history · red &lt; −15% · green &gt; +15% · 🎌 holiday · 🌧 rain ≥ 1 mm",
     "v_dwell": "(d) Average dwell time (bill opened → closed)",
+    "hu_n": "Count",
+    "hu_row": "% of branch",
+    "hu_col": "% of hour",
+    "hu_row_note": "% of branch = each row (branch) sums to 100% — each hour’s share of that branch’s day · colours compare within the row",
+    "hu_col_note": "% of hour = each column (hour) sums to 100% across branches · colours compare within the column",
+    "v_occ": "Seat occupancy by hour",
+    "occ_row": "Occupied",
+    "turns_row": "Turns / seat / hr",
+    "occ_note": "100% = every seat used for the whole hour · hours ≥80% = full (queues form here → check turns per seat/hr · average dwell) · <50% = quiet (marketing)",
+    "occ_note2": "Occupancy = guests × minutes seated (bill opened → closed, dine-in only) ÷ (seats × 60), averaged over the selected days · Turns / seat / hr = bills opened in that hour ÷ seats — full with high turns = truly full with a queue · full with low turns = guests stay long · guests = keyed pax (trusted days) else main bowls + sets · split bills count from the master bill’s open time · bills opened and closed within 3 min are excluded",
+    "occ_tip": "Occupancy (raw) {0}\nAvg guest-minutes / day {1}\nBills open / day {2}\nTurns (bills opened) / day {3}\nSeats {4} · {5} days",
+    "occ_over": "Over 100% = pax over-keyed or table sharing",
+    "occ_mid": "50–79%",
+    "v_dwell_h": "Average dwell (min) by hour the bill opened",
+    "n_bills": "{0} bills",
     "tables": "Tables",
     "avg_min": "Avg minutes",
     "ppl_table": "Guests / table",
@@ -998,7 +1027,7 @@ let TRUST = new Map();      // 'loc|d' -> pax_trust row
 // global filter state
 const F = {branches:new Set(), channel:'store', from:'', to:'', daytype:'all', preset:'30'};
 // per-section UI state
-const S = {open:new Set(), heat:'orders', attachCh:'all', attMode:'all', optGroup:null, dish:null, gOptGroup:null, menuCat:'main',
+const S = {open:new Set(), heat:'orders', heatU:'n', attachCh:'all', attMode:'all', optGroup:null, dish:null, gOptGroup:null, menuCat:'main',
   item:null, combo:['', '', ''], opp:null, gmonth:null,
   tHide:new Set(), tOpen:true, tRaw:false, tMet:'side', tMode:'all'};   // trend block
 
@@ -1359,34 +1388,30 @@ function volumeStore() {
     for (const r of lr) { const k = id + '|' + r[a.hour]; cells[k] = (cells[k] || 0) + (metric === 'pax' ? hourCust(r) : r[a[metric]]) / days; }
   }
   for (const v of Object.values(cells)) max = Math.max(max, v);
+  // unit toggle (Point 2026-10-07): จำนวน | % ของสาขา (row sums to 100) | % ของชั่วโมง (column sums to 100)
+  const U = S.heatU, ids = selBranches().filter(id => byLoc.get(id));
+  const rowSum = id => hours.reduce((s, hh) => s + (cells[id + '|' + hh] || 0), 0);
+  const colSum = hh => ids.reduce((s, id) => s + (cells[id + '|' + hh] || 0), 0);
+  const rs_ = Object.fromEntries(ids.map(id => [id, rowSum(id)])), cs_ = Object.fromEntries(hours.map(hh => [hh, colSum(hh)]));
+  const rowMax = Object.fromEntries(ids.map(id => [id, Math.max(...hours.map(hh => cells[id + '|' + hh] || 0))]));
+  const colMax = Object.fromEntries(hours.map(hh => [hh, Math.max(...ids.map(id => cells[id + '|' + hh] || 0))]));
   let body = '';
-  for (const id of selBranches()) {
-    if (!byLoc.get(id)) continue;
-    body += `<tr><td>${bn(id)}</td>` + hours.map(hh => { const v = cells[id + '|' + hh] || 0; return `<td class="n" style="${heatBg(v, max)}">${v ? fmt(v, metric === 'net' ? 0 : 1) : ''}</td>`; }).join('') + '</tr>';
-  }
-  let h = '<div class="card"><b>' + t('v_heat') + '</b> <span class="seg">' +
-    [['orders', t('orders')], ['pax', t('k_cust')], ['net', t('net')]].map(([k, l]) => `<button data-act="heat" data-k="${k}" class="${metric === k ? 'on' : ''}">${l}</button>`).join('') +
-    '</span><div class="note">' + t('v_avgday') + '</div>' +
-    table('<th>' + t('branch') + '</th>' + hours.map(x => `<th class="n">${x}:00</th>`).join(''), body, 'heat');
-  // utilization = pax-hours / (seats x hours); seats not yet supplied -> placeholder
-  const dw = A('dwell'), dwr = rows('dwell');
-  const dpHours = (b, dp) => dp === 'lunch' ? 3 : dp === 'dinner' ? Math.max(0, Math.min(b.close, 21) - 17) : Math.max(0, (b.close - b.open) - 3 - Math.max(0, Math.min(b.close, 21) - 17));
-  const dpOf = hh => hh >= 11 && hh <= 13 ? 'lunch' : hh >= 17 && hh <= 20 ? 'dinner' : 'non_peak';
-  let ub = '';
-  for (const id of selBranches()) {
-    const b = B[id], lr = byLoc.get(id); if (!lr) continue;
-    ub += `<tr><td>${bn(id)}</td>` + DP_ORDER.map(dp => {
-      if (!b.seats) return '<td class="muted">' + t('wait_seats') + '</td>';
-      const days = new Set(lr.map(r => r[a.d])).size;
-      const pax = sum(lr.filter(r => r[a.channel] === 'dine_in' && dpOf(r[a.hour]) === dp), hourCust);
-      const ds = dwr.filter(r => r[dw.loc] === id && r[dw.daypart] === dp);
-      const mins = div(sum(ds, r => r[dw.avg_min] * r[dw.sessions]), sum(ds, r => r[dw.sessions])) || 0;
-      const u = div(pax * mins / 60, b.seats * dpHours(b, dp) * days);
-      const tag = u == null ? '' : u < 0.5 ? '<span class="tag warn">' + t('u_low') + '</span>' : u > 0.8 ? '<span class="tag ok">' + t('u_full') + '</span>' : '';
-      return `<td class="n">${pct(u, 0)}${tag}</td>`;
+  for (const id of ids) {
+    body += `<tr><td>${bn(id)}</td>` + hours.map(hh => {
+      const v = cells[id + '|' + hh] || 0;
+      if (U === 'row') return `<td class="n" style="${heatBg(v, rowMax[id])}">${v ? pct(div(v, rs_[id]), 0) : ''}</td>`;
+      if (U === 'col') return `<td class="n" style="${heatBg(v, colMax[hh])}">${v ? pct(div(v, cs_[hh]), 0) : ''}</td>`;
+      return `<td class="n" style="${heatBg(v, max)}">${v ? fmt(v, metric === 'net' ? 0 : 1) : ''}</td>`;
     }).join('') + '</tr>';
   }
-  h += '<h3>' + t('v_util') + '</h3>' + table(th([t('branch'), ...DP_ORDER.map(d => DP[d])]), ub) + '</div>';
+  const seg = (act, opts, cur) => '<span class="seg">' + opts.map(([k, l]) => `<button data-act="${act}" data-k="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join('') + '</span>';
+  let h = '<div class="card"><b>' + t('v_heat') + '</b> ' +
+    seg('heat', [['orders', t('orders')], ['pax', t('k_cust')], ['net', t('net')]], metric) + ' ' +
+    seg('heatu', [['n', t('hu_n')], ['row', t('hu_row')], ['col', t('hu_col')]], U) +
+    '<div class="note">' + t('v_avgday') + (U === 'row' ? ' · ' + t('hu_row_note') : U === 'col' ? ' · ' + t('hu_col_note') : '') + '</div>' +
+    table('<th>' + t('branch') + '</th>' + hours.map(x => `<th class="n">${x}:00</th>`).join(''), body, 'heat') + '</div>';
+  // hourly seat occupancy (Point 2026-10-07, replaces the daypart utilization)
+  h += occupancyCard();
   // (b) dead hours: revenue by hour, 16-20 band highlighted
   const byH = group(rs, r => r[a.hour]), totNet = sum(rs, r => r[a.net]);
   let hmax = 0; for (const [, v] of byH) hmax = Math.max(hmax, sum(v, r => r[a.net]));
@@ -1399,7 +1424,8 @@ function volumeStore() {
     table(th([t('hour'), [t('net')], t('pct_day')]), hb) + '</div>';
   // (c) expected vs actual from calendar
   h += '<div class="card"><b>' + t('v_exp') + '</b> <span class="note">' + t('v_exp_note') + '</span>' + calendarTable(calDays(rows('calendar', {ch:STORE})), 120) + '</div>';
-  // (d) dwell
+  // (d) dwell — by hour the bill opened (feed occupancy) + by daypart (feed dwell)
+  const dw = A('dwell'), dwr = rows('dwell');
   const byDw = group(dwr, r => r[dw.loc] + '|' + r[dw.daypart]);
   let db = '';
   for (const id of selBranches()) for (const dp of DP_ORDER) {
@@ -1407,8 +1433,74 @@ function volumeStore() {
     const n = sum(x, r => r[dw.sessions]);
     db += `<tr><td>${bn(id)}</td><td>${DP[dp]}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(div(sum(x, r => r[dw.avg_min] * r[dw.sessions]), n), 1)}</td><td class="n">${fmt(div(sum(x, r => r[dw.avg_party] * r[dw.sessions]), n), 2)}</td></tr>`;
   }
-  h += '<div class="card"><b>' + t('v_dwell') + '</b>' + table(th([t('branch'), t('daypart'), [t('tables')], [t('avg_min')], [t('ppl_table')]]), db) + '</div>';
+  h += '<div class="card"><b>' + t('v_dwell') + '</b>' + dwellByHour() + table(th([t('branch'), t('daypart'), [t('tables')], [t('avg_min')], [t('ppl_table')]]), db) + '</div>';
   return h;
+}
+// ---- hourly seat occupancy (feed `occupancy`, dine-in only; sales_tables.build_occupancy)
+const OCC_H = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+const occGrp = hh => hh >= 11 && hh <= 13 ? 'g1' : hh >= 17 && hh <= 20 ? 'g2' : '';
+const occGs = hh => hh === 11 || hh === 14 || hh === 17 ? ' gs' : '';
+function occBg(u) {
+  if (u == null) return '';
+  if (u >= 0.8) return `background:rgba(26,127,60,${(0.35 + 0.25 * Math.min(1, (u - 0.8) / 0.2)).toFixed(3)})`;
+  if (u >= 0.5) return `background:rgba(230,160,40,${(0.22 + 0.25 * (u - 0.5) / 0.3).toFixed(3)})`;
+  return `background:rgba(137,135,129,${(0.05 + 0.18 * u / 0.5).toFixed(3)})`;
+}
+function occAgg() {   // loc -> {days, h: {hour -> {sm, bo, tu, ds}}}
+  const o = A('occupancy'), out = {};
+  for (const r of rows('occupancy')) {
+    const x = out[r[o.loc]] || (out[r[o.loc]] = {dset:new Set(), h:{}});
+    x.dset.add(r[o.d]);
+    const c = x.h[r[o.hour]] || (x.h[r[o.hour]] = {sm:0, bo:0, tu:0, ds:0});
+    c.sm += r[o.seat_min]; c.bo += r[o.bills_open]; c.tu += r[o.turns]; c.ds += r[o.dwell_sum] || 0;
+  }
+  for (const x of Object.values(out)) x.days = x.dset.size;
+  return out;
+}
+function occHead() {
+  let g = '<th></th>';
+  for (let i = 0; i < OCC_H.length;) {
+    const hh = OCC_H[i], cls = occGrp(hh);
+    if (cls) { const n = OCC_H.filter(x => occGrp(x) === cls).length; g += `<th class="grp ${cls} gs" colspan="${n}">${cls === 'g1' ? DP.lunch : DP.dinner}</th>`; i += n; }
+    else { g += '<th class="grp"></th>'; i++; }
+  }
+  return `<tr>${g}</tr><tr><th>${t('branch')}</th>` + OCC_H.map(hh => `<th class="n ${occGrp(hh)}${occGs(hh)}">${hh}:00</th>`).join('') + '</tr>';
+}
+function occupancyCard() {
+  if (!D.cols.occupancy) return '';
+  const ag = occAgg();
+  let body = '';
+  for (const id of selBranches()) {
+    const b = B[id], x = ag[id]; if (!x) continue;
+    if (!b.seats) { body += `<tr><td>${bn(id)}</td><td class="muted" colspan="${OCC_H.length}">${t('wait_seats')}</td></tr>`; continue; }
+    const occ = OCC_H.map(hh => {
+      const c = x.h[hh], cls = occGrp(hh) + occGs(hh);
+      if (!c) return `<td class="n ${cls}"></td>`;
+      const u = c.sm / (b.seats * 60 * x.days);
+      const tip = t('occ_tip', pct(u, 0), fmt(c.sm / x.days), fmt(c.bo / x.days, 1), fmt(c.tu / x.days, 1), b.seats, x.days) + (u > 1 ? '\n' + t('occ_over') : '');
+      return `<td class="n${occGs(hh)}" style="${occBg(u)}" title="${esc(tip)}">${pct(Math.min(u, 1), 0)}</td>`;
+    }).join('');
+    const turns = OCC_H.map(hh => { const c = x.h[hh]; return `<td class="n muted ${occGrp(hh)}${occGs(hh)}">${c ? fmt(c.tu / (b.seats * x.days), 2) : ''}</td>`; }).join('');
+    body += `<tr><td><b>${bn(id)}</b> <span class="muted">${t('occ_row')}</span></td>${occ}</tr>` +
+      `<tr><td class="ind1 muted">${t('turns_row')}</td>${turns}</tr>`;
+  }
+  if (!body) return '<div class="card"><b>' + t('v_occ') + '</b><div class="muted">' + t('no_data') + '</div></div>';
+  const leg = '<div class="legend note">' + [[occBg(0.9), '≥80% ' + t('u_full')], [occBg(0.65), t('occ_mid')], [occBg(0.3), '&lt;50% ' + t('u_low')]]
+    .map(([bg, l]) => `<span><i style="${bg}"></i>${l}</span>`).join('') + '</div>';
+  return '<div class="card"><b>' + t('v_occ') + '</b>' + leg +
+    `<table class="heat occ"><thead>${occHead()}</thead><tbody>${body}</tbody></table>` +
+    '<div class="note">' + t('occ_note') + '</div><div class="note">' + t('occ_note2') + '</div></div>';
+}
+function dwellByHour() {
+  if (!D.cols.occupancy) return '';
+  const ag = occAgg(); let mx = 0, body = '';
+  for (const x of Object.values(ag)) for (const c of Object.values(x.h)) if (c.tu) mx = Math.max(mx, c.ds / c.tu);
+  for (const id of selBranches()) {
+    const x = ag[id]; if (!x) continue;
+    body += `<tr><td>${bn(id)}</td>` + OCC_H.map(hh => { const c = x.h[hh], v = c && c.tu ? c.ds / c.tu : null;
+      return `<td class="n${occGs(hh)}" style="${v ? heatBg(v, mx) : ''}" title="${c ? t('n_bills', fmt(c.tu)) : ''}">${v ? fmt(v, 0) : ''}</td>`; }).join('') + '</tr>';
+  }
+  return '<div class="note">' + t('v_dwell_h') + '</div>' + `<table class="heat occh"><thead>${occHead()}</thead><tbody>${body}</tbody></table><h3></h3>`;
 }
 // calendar rows -> per branch-day {loc,d,net,orders,exp,netE,hol,rain,dow,dom}
 function calDays(rs) {
@@ -2058,6 +2150,7 @@ const ACT = {
   dtype: k => { F.daytype = k; changed(); },
   tree: k => { S.open.has(k) ? S.open.delete(k) : S.open.add(k); render(); },
   heat: k => { S.heat = k; render(); },
+  heatu: k => { S.heatU = k; render(); },
   attch: k => { S.attachCh = k; render(); },
   attmode: k => { S.attMode = k; render(); },
   opp: k => { S.opp = S.opp === k ? null : k; render(); },

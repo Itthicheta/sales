@@ -1,0 +1,6 @@
+# build output (payload) — rebuilt + shipped by app/deploy.sh, never tracked
+app/site/data/data.json
+# wrangler local state
+app/.wrangler/
+__pycache__/
+.DS_Store

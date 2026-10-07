@@ -1,0 +1,2142 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mama Pook Sales Web</title><style>
+/* frame copied from dashboard_app/site/index.html (variables, .wrap, nav, .card, tables, light/dark) */
+:root { --bg:#f9f9f7; --fg:#0b0b0b; --card:#fcfcfb; --line:rgba(11,11,11,.12);
+  --muted:#898781; --warn:#fdf3dc; --bad:#fde3dc; --ok:#e7f6ec; --accent:#2a78d6; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0d0d0d; --fg:#f2f2ef; --card:#1a1a19;
+  --line:rgba(255,255,255,.12); --muted:#c3c2b7; --warn:#3a2b12; --bad:#42221c; --ok:#12321e; } }
+* { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--fg);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+.wrap { max-width:1180px; margin:0 auto; padding:16px 18px 80px; }
+h1 { font-size:19px; margin:10px 0 2px; } h2 { font-size:16px; margin:22px 0 8px; }
+h3 { font-size:13.5px; margin:14px 0 6px; }
+.muted { color:var(--muted); font-size:12.5px; }
+#banner { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px; align-items:center; }
+.pill { background:var(--card); border:1px solid var(--line); border-radius:20px;
+  padding:5px 12px; font-size:12.5px; }
+.pill.live { background:#1a7f3c; color:#fff; border-color:#1a7f3c; font-weight:600; }
+.pill.dead { background:#c0392b; color:#fff; border-color:#c0392b; font-weight:600; }
+.g { color:#1a7f3c; } .r { color:#c0392b; } .y { color:#b07d10; }
+#sticky { position:sticky; top:0; background:var(--bg); z-index:5; border-bottom:1px solid var(--line); }
+nav { padding:10px 0 6px; display:flex; gap:6px; flex-wrap:wrap; }
+nav a { text-decoration:none; color:var(--fg); font-size:13px; padding:6px 12px;
+  border:1px solid var(--line); border-radius:8px; background:var(--card); }
+nav a.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+#filters { display:flex; gap:14px; flex-wrap:wrap; align-items:center; padding:6px 0 10px; font-size:12.5px; }
+#filters .grp { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+#filters label { white-space:nowrap; }
+.seg button, .btn { font:inherit; font-size:12px; padding:4px 9px; border:1px solid var(--line);
+  border-radius:8px; background:var(--card); color:var(--fg); cursor:pointer; }
+.seg button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+select { font:inherit; font-size:12px; padding:3px 6px; border:1px solid var(--line);
+  border-radius:8px; background:var(--card); color:var(--fg); }
+section { display:none; } section.show { display:block; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; margin:10px 0; overflow-x:auto; }
+table { border-collapse:collapse; width:100%; font-size:12.5px; }
+th { text-align:left; font-size:10.5px; color:var(--muted);
+  border-bottom:1px solid var(--line); padding:4px 6px; white-space:nowrap; }
+td { border-bottom:1px solid var(--line); padding:4px 6px; }
+td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+tr.warn td { background:var(--warn); } tr.bad td { background:var(--bad); } tr.ok td { background:var(--ok); }
+tr.tot td { font-weight:650; border-top:2px solid var(--line); }
+tr.click { cursor:pointer; } tr.click:hover td { background:color-mix(in srgb, var(--accent) 10%, transparent); }
+tr.sel td { background:color-mix(in srgb, var(--accent) 18%, transparent); }
+tr.hl td { background:color-mix(in srgb, #e6a028 16%, transparent); }
+.kpis { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 4px; }
+.kpi { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 16px; min-width:120px; }
+.kpi .v { font-size:17px; font-weight:650; font-variant-numeric:tabular-nums; }
+.kpi .l { font-size:11px; color:var(--muted); margin-top:2px; }
+.neg { color:#c0392b; } .pos { color:#1a7f3c; }
+.bw { display:flex; align-items:center; gap:6px; min-width:110px; }
+.bw .bt { flex:1; background:var(--line); border-radius:4px; height:8px; overflow:hidden; min-width:50px; }
+.bar { height:8px; background:var(--accent); border-radius:4px; }
+.bar.alt { background:#e6a028; }
+.bw span { font-variant-numeric:tabular-nums; min-width:46px; text-align:right; font-size:12px; }
+.stack { display:flex; height:14px; border-radius:4px; overflow:hidden; min-width:220px; }
+.stack div { height:100%; }
+.legend span { display:inline-flex; align-items:center; gap:4px; margin-right:10px; font-size:11.5px; }
+.legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+.heat td.n { color:var(--fg); }
+/* tree table column groups (Point 2026-10-07): drinks / food attach / money */
+td.g1, th.g1 { background:rgba(42,120,214,.07); } td.g2, th.g2 { background:rgba(26,127,60,.07); }
+td.gs, th.gs { border-left:2px solid var(--line); }
+th.grp { text-align:center; font-size:10px; color:var(--muted); border-bottom:none; padding-bottom:0; }
+.tag { display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:8px; border:1px solid var(--line); margin-left:4px; }
+.tag.warn { background:var(--warn); } .tag.bad { background:var(--bad); } .tag.ok { background:var(--ok); }
+.split { display:grid; grid-template-columns:repeat(auto-fit,minmax(520px,1fr)); gap:14px; }
+.split > div { min-width:0; }
+.leg { font-size:14px; margin:12px 0 0; padding:4px 10px; border-left:4px solid var(--accent); }
+.leg.grab { border-left-color:#00b14f; }
+.strip { display:flex; gap:8px; flex-wrap:wrap; }
+.strip .s { border:1px solid var(--line); border-radius:10px; padding:6px 12px; font-size:12px; }
+.strip .s.bad { background:var(--bad); }
+.mini { display:flex; align-items:flex-end; gap:1px; height:70px; }
+.mini div { flex:1; background:var(--accent); min-height:1px; border-radius:1px 1px 0 0; }
+pre.msg { white-space:pre-wrap; font-family:inherit; font-size:13px; background:var(--bg);
+  border:1px solid var(--line); border-radius:8px; padding:12px; }
+.tw { cursor:pointer; user-select:none; color:var(--accent); display:inline-block; width:16px; }
+.ind1 { padding-left:22px !important; } .ind2 { padding-left:42px !important; }
+.note { font-size:12px; color:var(--muted); margin:4px 0; }
+#freshBtn { position:fixed; bottom:18px; right:18px; z-index:50; padding:10px 16px; border:0; border-radius:10px;
+  background:#2a78d6; color:#fff; font:inherit; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.3); }
+/* trend block (section 1) */
+.tchips { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:4px 0; }
+.chip { font:inherit; font-size:12px; padding:3px 10px; border:1px solid var(--line); border-radius:14px;
+  background:var(--card); color:var(--fg); cursor:pointer; display:inline-flex; gap:5px; align-items:center; }
+.chip.off { opacity:.4; text-decoration:line-through; }
+.dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:5px; }
+.chip .dot { margin-right:0; }
+.tgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }
+.tgrid > div { min-width:0; }
+.ttl { font-size:12.5px; font-weight:650; margin:10px 0 2px; }
+.tbar { margin:12px 0 0; display:flex; gap:8px; flex-wrap:wrap; }
+.tsvg { touch-action:pan-y; overflow:visible; }
+.tsvg text { fill:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; }
+.tsvg .gl { stroke:var(--line); } .tsvg .tg { stroke:var(--fg); stroke-opacity:.45; stroke-dasharray:3 3; }
+.tsvg .train { fill:rgba(42,120,214,.08); } .tsvg .thol { fill:#c0392b; stroke:var(--card); stroke-width:1.5; }
+#ttip { position:fixed; z-index:60; display:none; pointer-events:none; background:var(--card); color:var(--fg);
+  border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:12px; line-height:1.55;
+  box-shadow:0 4px 14px rgba(0,0,0,.25); white-space:nowrap; }
+#banner .lang { margin-left:auto; padding:3px 10px; }
+#banner .lang button { font:inherit; font-size:12px; border:0; background:none; color:var(--muted); cursor:pointer; padding:0 3px; }
+#banner .lang button.on { color:var(--fg); font-weight:700; }
+#filters .grp.rng { position:relative; }
+.dpt { cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; }
+#cal { position:absolute; top:calc(100% + 6px); left:0; z-index:30; background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:10px 12px; box-shadow:0 8px 24px rgba(0,0,0,.18); font-size:12px; user-select:none; }
+#cal .ms { display:flex; gap:18px; }
+#cal .mh { display:flex; align-items:center; justify-content:space-between; font-weight:650; margin-bottom:6px; min-height:24px; }
+#cal .mh button, #cal .ft button { font:inherit; font-size:12px; border:1px solid var(--line); background:var(--card); color:var(--fg);
+  border-radius:8px; cursor:pointer; padding:2px 9px; }
+#cal .mh button:disabled { opacity:.3; cursor:default; }
+#cal .g { display:grid; grid-template-columns:repeat(7, 32px); row-gap:2px; }
+#cal .w { text-align:center; color:var(--muted); font-size:10.5px; padding-bottom:3px; }
+#cal .d { position:relative; height:30px; border:0; background:none; color:var(--fg); font:inherit; font-size:12px;
+  cursor:pointer; border-radius:0; padding:0; font-variant-numeric:tabular-nums; }
+#cal .d.we { background:color-mix(in srgb, var(--muted) 10%, transparent); }
+#cal .d:hover:not(:disabled) { outline:1px solid var(--accent); outline-offset:-1px; border-radius:6px; }
+#cal .d:disabled { color:var(--muted); opacity:.4; cursor:default; }
+#cal .d.in { background:color-mix(in srgb, var(--accent) 18%, transparent); }
+#cal .d.s, #cal .d.e { background:var(--accent); color:#fff; font-weight:650; }
+#cal .d.s { border-radius:8px 0 0 8px; } #cal .d.e { border-radius:0 8px 8px 0; } #cal .d.s.e { border-radius:8px; }
+#cal .d.td { box-shadow:inset 0 0 0 1.5px var(--fg); border-radius:6px; font-weight:700; }
+#cal .d.hol::after { content:''; position:absolute; left:50%; bottom:3px; width:4px; height:4px; margin-left:-2px;
+  border-radius:50%; background:#c0392b; }
+#cal .ft { display:flex; gap:8px; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+#cal .ft span { flex:1; color:var(--muted); }
+#cal .mh .nw { visibility:hidden; }
+@media (max-width:700px) { #cal .ms > div:first-child { display:none; } #cal .mh .nw { visibility:visible; } #cal { left:-4px; } }
+@media (max-width:700px) { .split { grid-template-columns:1fr; } .wrap { padding:12px 12px 60px; } }
+</style></head><body><div class="wrap">
+<h1>Mama Pook · Sales Web</h1>
+<div id="banner"><span class="pill" data-i18n="loading"></span></div>
+<div class="note" data-i18n="hdr_note"></div>
+<div id="sticky">
+<nav id="nav">
+  <a href="#tree" class="active" data-i18n="nav_tree"></a>
+  <a href="#volume" data-i18n="nav_volume"></a>
+  <a href="#ticket" data-i18n="nav_ticket"></a>
+  <a href="#options" data-i18n="nav_options"></a>
+  <a href="#members" data-i18n="nav_members"></a>
+  <a href="#menu" data-i18n="nav_menu"></a>
+  <a href="#insights">7 Insights</a>
+  <a href="#weekly" data-i18n="nav_weekly"></a>
+  <a href="#grab">9 Grab</a>
+</nav>
+<div id="filters"></div>
+</div>
+<section id="tree" class="show"></section>
+<section id="volume"></section>
+<section id="ticket"></section>
+<section id="options"></section>
+<section id="members"></section>
+<section id="menu"></section>
+<section id="insights"></section>
+<section id="weekly"></section>
+<section id="grab"></section>
+<div id="ttip"></div>
+<script>
+'use strict';
+// ---------------------------------------------------------------- config
+const EDGE_URL = 'https://xnmzlqqudizckjhchhpn.supabase.co/functions/v1/sales-data';
+const TOKEN = '16f16024e7808bddbc57cf52d841a66239e8d555d78aeee4';
+// in-store = dine-in + take-away only. POS 'delivery' tabs are Grab orders keyed at POS
+// markup prices — Grab money comes only from the grab.* feeds, so they never count here.
+const STORE = ['dine_in', 'take_away'];
+const DP_ORDER = ['lunch', 'non_peak', 'dinner'];
+
+// ---------------------------------------------------------------- i18n (TH | EN, Point 2026-10-07)
+// every UI string lives here; payload data (menu / option / review / campaign names) is never translated.
+// T.th must stay byte-identical to the original Thai copy.
+const T = {
+  th: {
+    "loading": "กำลังโหลดข้อมูล…",
+    "hdr_note": "ออเดอร์ Delivery ใน POS = Grab → ดูที่แท็บ Grab (ราคา POS ไม่ใช่ราคา Grab)",
+    "nav_tree": "1 ต้นไม้ยอดขาย",
+    "nav_volume": "2 ปริมาณ",
+    "nav_ticket": "3 ตั๋วเฉลี่ย",
+    "nav_options": "4 ตัวเลือก",
+    "nav_members": "5 สมาชิก",
+    "nav_menu": "6 เมนู&โปร",
+    "nav_weekly": "8 สรุปรายสัปดาห์",
+    "fb_copy": " (สำเนาล่าสุด)",
+    "stale": " (เก่า {0})",
+    "hrs": "{0} ชม.",
+    "mins": "{0} นาที",
+    "fb_title": "โหลดข้อมูลสดไม่ได้ — ใช้สำเนาที่ฝังไว้",
+    "live_title": "ข้อมูลสดจาก Supabase",
+    "data_at": "ข้อมูล ณ {0}{1}",
+    "through": "ข้อมูลถึง",
+    "partial": "วันนี้ยังไม่ครบวัน",
+    "new_data": "🔄 ข้อมูลใหม่ {0} — คลิกเพื่อโหลด",
+    "load_fail": "โหลดข้อมูลไม่ได้",
+    "render_err": "เกิดข้อผิดพลาดในการแสดงผล: {0}",
+    "f_branch": "สาขา",
+    "f_channel": "ช่องทาง",
+    "f_range": "ช่วง",
+    "f_day": "วัน",
+    "f_both": "รวม",
+    "p_days": "{0} วัน",
+    "p_this": "เดือนนี้",
+    "p_prev": "เดือนก่อน",
+    "p_custom": "กำหนดเอง",
+    "cal_wd": "จ อ พ พฤ ศ ส อา",
+    "cal_start": "เลือกวันเริ่มต้น",
+    "cal_end": "{0} – เลือกวันสิ้นสุด",
+    "cal_clear": "ล้าง",
+    "cal_close": "ปิด",
+    "cal_prev": "เดือนก่อนหน้า",
+    "cal_next": "เดือนถัดไป",
+    "every_day": "ทุกวัน",
+    "weekday": "วันธรรมดา",
+    "weekend": "เสาร์-อาทิตย์",
+    "holiday": "วันหยุด",
+    "all": "ทั้งหมด",
+    "range_note": "ช่วง {0} – {1} · {2} สาขา",
+    "month_note": "ข้อมูลรายเดือน: ใช้ทุกเดือนที่ทับช่วงวันที่ (ตัวกรองประเภทวันไม่มีผล)",
+    "ch_dine": "ทานที่ร้าน",
+    "ch_take": "กลับบ้าน",
+    "ch_deliv": "เดลิเวอรี่ (POS)",
+    "dp_lunch": "กลางวัน 11–14",
+    "dp_non": "นอกพีค",
+    "dp_dinner": "เย็น 17–21",
+    "side": "เครื่องเคียง",
+    "bev_paid": "เครื่องดื่มจ่ายเงิน",
+    "bev_prem": "เครื่องดื่มพรีเมียม",
+    "premium": "พรีเมียม",
+    "dessert": "ของหวาน",
+    "sharing_long": "Sharing (จานกลาง)",
+    "water": "น้ำเปล่า",
+    "set": "เซต",
+    "sets": "เซต",
+    "tm_bevp": "ดื่มจ่ายเงิน",
+    "main_bowls": "ชามหลัก",
+    "grp_bev": "เครื่องดื่ม",
+    "grp_food": "อาหารเสริม",
+    "m_all": "รวม",
+    "upsell": "อัพเซล",
+    "in_set": "ในเซต",
+    "total": "รวม",
+    "no_grab": "ไม่มีข้อมูล Grab ในช่วงที่เลือก",
+    "no_data": "ไม่มีข้อมูลในช่วงที่เลือก",
+    "nodata_short": "ไม่มีข้อมูล",
+    "leg_store": "หน้าร้าน (POS)",
+    "store": "หน้าร้าน",
+    "branch": "สาขา",
+    "orders": "ออเดอร์",
+    "k_cust": "ลูกค้า",
+    "net": "ยอดสุทธิ",
+    "units": "ชิ้น",
+    "share": "สัดส่วน",
+    "month": "เดือน",
+    "choice": "ตัวเลือก",
+    "group": "กลุ่ม",
+    "picks": "เลือก",
+    "bills": "บิล",
+    "menu": "เมนู",
+    "hr": "ชม.",
+    "hour": "ชั่วโมง",
+    "diff": "ต่าง",
+    "date": "วันที่",
+    "daypart": "ช่วงเวลา",
+    "party_size": "ขนาดกลุ่ม",
+    "channel": "ช่องทาง",
+    "lever": "ตัวขับ",
+    "unspecified": "ไม่ระบุ",
+    "n_pax": "{0} คน",
+    "n_days": "{0} วัน",
+    "wait_cost": "รอข้อมูลต้นทุน",
+    "matched": "จับคู่ได้",
+    "main_plus_set": "ชามหลัก+เซต",
+    "thb_unit": "฿/ชิ้น",
+    "thb_bill": "฿/บิล",
+    "main_bill": "ชามหลัก/บิล",
+    "pair_bills": "บิลคู่",
+    "dow": ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."],
+    "none": "ไม่มี",
+    "h_tree": "1 · ต้นไม้ยอดขาย",
+    "k_net": "ยอดขายสุทธิ",
+    "k_bills": "บิล",
+    "k_tkt_bill": "ตั๋วเฉลี่ย/บิล",
+    "k_tkt_head": "ตั๋วเฉลี่ย/หัว",
+    "k_bpc": "ชามต่อลูกค้า",
+    "note_attach": "attach รวม = เมนู + ออปชัน + ในเซต · ตัวหาร = ชามหลัก + เซต · ไม่นับของฟรี (A13 หมูกระจกฟรีรีวิว, H4 น้ำแข็งฟรี, H2 แก้วเปล่า, เมนูแลกฟรี)",
+    "pax_title": "ความน่าเชื่อถือจำนวนลูกค้า (ชาม ÷ ลูกค้าที่คีย์ ควรอยู่ 0.9–1.3)",
+    "pax_line": "{0} ของวันเชื่อถือได้ · ratio เฉลี่ย {1}",
+    "pax_fix": "ต้องคีย์จำนวนลูกค้าให้ถูก",
+    "pax_note": "⚠ = มีวันที่ไม่น่าเชื่อถือ → ใช้จำนวนมื้อหลัก (ชามหลัก + เซต) แทนจำนวนลูกค้าในวันนั้น",
+    "tkt_order": "ตั๋ว/ออเดอร์",
+    "disc_pct": "ส่วนลด%",
+    "warn_days": "{0} วันที่ใช้ชามแทนลูกค้า",
+    "tree_note": "คลิก ▸ เพื่อแตกช่วงเวลา → ช่องทาง · attach% = ชิ้น (เมนู + ออปชัน + ในเซต) ÷ (ชามหลัก + เซต) · <b>(x%)</b> = ส่วนที่มาจากตัวเลือกบังคับในเซต · ส่วนลด% = ส่วนลด ÷ ยอดก่อนลด",
+    "g_net": "ยอดขายสุทธิ Grab",
+    "avg_order": "เฉลี่ย/ออเดอร์",
+    "payout": "รับจริง",
+    "payout_ratio": "รับจริง ÷ ยอดขาย",
+    "tg_note": "ชั้นวิเคราะห์ (grab.daily) + ชั้นบิล (grab.orders: ส่วนลดร้าน / ค่าคอมมิชชัน / ค่าการตลาด / รับจริง)",
+    "sales_bill": "ยอดขาย (บิล)",
+    "store_disc": "ส่วนลดร้าน",
+    "comm": "ค่าคอมมิชชัน",
+    "mkt": "ค่าการตลาด",
+    "trends": "แนวโน้ม",
+    "no_branch_shown": "ไม่มีสาขาที่แสดง",
+    "mix_title": "สัดส่วนยอดขายตามหมวด (สาขาที่แสดงรวมกัน)",
+    "raw": "ดิบ",
+    "avg7": "เฉลี่ย 7 วัน",
+    "tnote_sm": "เส้น = ค่าเฉลี่ย 7 วันย้อนหลัง (ผลรวม ÷ ผลรวม) · ",
+    "tnote_raw": "ค่ารายวัน · ",
+    "tnote_leg": " วันหยุด · แถบฟ้า = ฝน ≥ 10 มม. (สาขาที่แสดงสาขาใดก็ได้) · ชี้/แตะกราฟเพื่อดูค่า",
+    "tt_net": "ยอดขายสุทธิ/วัน (฿)",
+    "tt_cust": "ลูกค้า/วัน",
+    "tt_tph": "ตั๋วเฉลี่ย/หัว (฿)",
+    "tt_set": "เซต ÷ (ชามหลัก + เซต)",
+    "tt_att": "Attach {0} {1} ÷ (ชามหลัก + เซต)",
+    "in_set_paren": "(ในเซต {0})",
+    "t_upsell_note": "อัพเซล = รวม − ส่วนที่บังคับในเซต · ชี้ที่กราฟเพื่อดูสัดส่วนในเซต",
+    "mix_note": "ยอดตามหมวด = ราคาเมนู + ออปชันของแต่ละหมวด (ก่อนส่วนลด, ออปชันซ้อนกันได้) จึงไม่เท่ากับยอดสุทธิ → ปรับเป็น 100% เพื่อดูสัดส่วนเท่านั้น · อาหารเสริม = เครื่องเคียง + Sharing + ของหวาน",
+    "tg_net_day": "Grab ยอดสุทธิ/วัน (฿)",
+    "tg_ord_day": "Grab ออเดอร์/วัน",
+    "trends_grab": "แนวโน้ม Grab",
+    "h_volume": "2 · ปริมาณ",
+    "v_heat": "(ก) ความหนาแน่นรายชั่วโมง × สาขา",
+    "v_avgday": "ค่าเฉลี่ยต่อวันที่มีขาย",
+    "wait_seats": "รอข้อมูลที่นั่ง",
+    "u_low": "ว่าง",
+    "u_full": "เต็ม",
+    "v_util": "อัตราการใช้ที่นั่ง (ลูกค้า×เวลานั่ง ÷ ที่นั่ง×ชั่วโมง)",
+    "v_dead": "(ข) ชั่วโมงเงียบ — ยอดสุทธิรายชั่วโมง",
+    "v_band": "แถบ 16:00–20:00 = {0} ของยอดทั้งวัน (฿{1})",
+    "pct_day": "% ของวัน",
+    "v_exp": "(ค) ปกติ vs จริง",
+    "v_exp_note": "ปกติ = ค่าคาดจากประวัติของสาขาเอง · แดง &lt; −15% · เขียว &gt; +15% · 🎌 วันหยุด · 🌧 ฝน ≥ 1 มม.",
+    "v_dwell": "(ง) เวลานั่งเฉลี่ย (เปิดบิล → ปิดบิล)",
+    "tables": "โต๊ะ",
+    "avg_min": "นาทีเฉลี่ย",
+    "ppl_table": "คน/โต๊ะ",
+    "actual": "ยอดจริง",
+    "expected": "ปกติ",
+    "rain_mm": "ฝน มม.",
+    "showing": "แสดง {0} จาก {1} แถว (ล่าสุดก่อน)",
+    "vg_title": "ออเดอร์ Grab ตามชั่วโมง เทียบหน้าร้าน",
+    "vg_note": "ออเดอร์เฉลี่ยต่อสาขา-วัน",
+    "h_ticket": "3 · ตั๋วเฉลี่ย",
+    "t_att": "(ก) Attach ต่อมื้อหลัก (ชามหลัก + เซต)",
+    "all_ch": "ทุกช่องทาง",
+    "t_att_note": "รวม = เมนู + ออปชัน + ในเซต · อัพเซล = สั่งเป็นเมนูเดี่ยวหรือเป็นตัวเลือกที่จ่ายเพิ่ม · ในเซต = ตัวเลือกบังคับในเซต · ตัวหาร = ชามหลัก + เซต · สีเข้ม = ใกล้สาขาที่ดีที่สุดในคอลัมน์",
+    "opp_set": "ถ้า <b>{0}</b> ({1}) ขาย<b>เซต</b>ได้เท่า<b>{2}</b> (เซต {3} ของมื้อหลัก จากตอนนี้ {4}) จะเพิ่ม ≈ <b>฿{5}/เดือน</b> (= {6} มื้อหลัก × {7} × ราคาเซตเฉลี่ย ฿{8}) — ประมาณการแบบหยาบ: ยังไม่หักชามเดี่ยวที่ลูกค้าเปลี่ยนมาสั่งเซต",
+    "opp_lever": "ถ้า <b>{0}</b> ({1}) ขาย<b>{2}</b>ได้เท่า<b>{3}</b> ({4} ต่อมื้อหลัก จากตอนนี้ {5}) จะเพิ่ม ≈ <b>฿{6}/เดือน</b> (= {7} มื้อหลัก × {8} × ฿{9})",
+    "t_opp": "(ข) โอกาสเพิ่มยอด (฿/เดือน)",
+    "t_opp_tot": " — รวม ≈ ฿{0}/เดือน",
+    "t_opp_note": "คำนวณจาก 30 วันเต็มล่าสุด (ไม่ขึ้นกับช่วงวันที่) · ใช้ตัวกรองสาขา · คลิกแถวเพื่อดูคำอธิบาย · ตัวขับขายเพิ่ม (เครื่องเคียง/เครื่องดื่ม/ของหวาน/Sharing) ใช้ชั้นอัพเซล (ไม่นับตัวเลือกในเซต) · \"เซต\" = สัดส่วนเซตต่อมื้อหลัก × ราคาเซตเฉลี่ย",
+    "now": "ตอนนี้",
+    "best": "ดีที่สุด (สาขา)",
+    "main30": "มื้อหลัก/30วัน",
+    "avg_price": "ราคาเฉลี่ย",
+    "plus_month": "+฿/เดือน",
+    "party_line": "เดี่ยว {0} · คู่ {1} · กลุ่ม {2}",
+    "t_party": "(ค) ขนาดกลุ่ม และ การกระจายยอดต่อบิล",
+    "party_bills": "ขนาดกลุ่ม (บิล)",
+    "tkt_bills": "ยอดต่อบิล (บิล)",
+    "tg_att": "Attach ต่อมื้อหลัก (ชามหลัก + เซต) — Grab",
+    "tg_att_note": "จากออเดอร์ Grab ที่จับคู่กับบิล POS ได้เท่านั้น (คอลัมน์ \"จับคู่ได้\") · นับแบบรวม = เมนู + ออปชัน + ในเซต",
+    "tg_cross": "ตรวจไขว้จากเมนูขาย Grab (ทุกออเดอร์)",
+    "units_order": "ชิ้น/ออเดอร์",
+    "thb_menu": "฿ เมนู",
+    "h_options": "4 · ตัวเลือก",
+    "o_share": "(ก) สัดส่วนตัวเลือกในกลุ่ม",
+    "picks_n": "เลือก (ครั้ง)",
+    "share_all": "สัดส่วนรวม",
+    "thb_extra": "฿ เพิ่มเงิน",
+    "o_tail": "(ข) หางที่ไม่มีคนเลือก (&lt; 2% ของกลุ่ม, กลุ่มที่มี ≥ 50 ครั้ง)",
+    "n_choices": " — {0} ตัวเลือก",
+    "o_route": "(ค) เส้นทาง Sharing — เป็นออปชัน vs เมนูเดี่ยว",
+    "o_route_note": "เหลือง = ราคาต่อชิ้นต่างกันเกิน ฿5",
+    "opt_units": "ออปชัน (ชิ้น)",
+    "menu_units": "เมนูเดี่ยว (ชิ้น)",
+    "diff_thb": "ต่าง ฿",
+    "o_dish": "(ง) ตัวเลือกตามเมนู",
+    "o_dish_note": "ตัดตัวเลือกที่มี ≤ 2 ครั้งต่อเดือนออก",
+    "share_grp": "สัดส่วนในกลุ่ม",
+    "og_title": "ตัวเลือก Grab (จากออเดอร์ที่จับคู่กับ POS ได้ · ครอบคลุม {0})",
+    "og_none": "ไม่มีตัวเลือกจากออเดอร์ที่จับคู่ได้",
+    "og_share": "สัดส่วนตัวเลือกในกลุ่ม",
+    "og_tail": "หางที่ไม่มีคนเลือก (&lt; 2% ของกลุ่ม, กลุ่มที่มี ≥ 50 ครั้ง) — {0} ตัวเลือก",
+    "h_members": "5 · สมาชิก",
+    "m_nograb": "ไม่มีข้อมูลลูกค้าจาก Grab",
+    "m_share": "สัดส่วนบิลที่มีสมาชิก",
+    "member_bills": "บิลสมาชิก",
+    "m_bar": "สัดส่วน (แถบเต็ม = 25%)",
+    "m_people": "สมาชิก (คน)",
+    "m_wb": "รายชื่อดึงกลับ (win-back)",
+    "m_wb_n": " — {0} คน",
+    "code": "รหัส",
+    "last_branch": "สาขาล่าสุด",
+    "visits": "ครั้ง",
+    "last": "ล่าสุด",
+    "days_gone": "หายไป (วัน)",
+    "avg_thb": "เฉลี่ย ฿",
+    "h_menu": "6 · เมนู &amp; โปร",
+    "c_main": "จานหลัก",
+    "other": "อื่นๆ",
+    "star": "ดาว",
+    "plow": "ม้างาน",
+    "puzzle": "ปริศนา",
+    "dog": "หมา",
+    "mm_title": "(ก) Menu matrix — ความนิยม × ราคา",
+    "mm_note": "ดาว = ขายดี+ราคาสูง · ม้างาน = ขายดี+ราคาต่ำ · ปริศนา = ขายน้อย+ราคาสูง · หมา = ขายน้อย+ราคาต่ำ (แบ่งที่มัธยฐาน: {0} ชิ้น, ฿{1}) · แกนกำไร: รอข้อมูลต้นทุน · คลิกเมนูเพื่อเจาะลึก",
+    "price_unit": "ราคา/ชิ้น",
+    "pop_q": "ควอไทล์ความนิยม",
+    "profit": "กำไร",
+    "mset_title": "(ค) เซต vs จานหลักแบบสั่งเดี่ยว",
+    "mset_note": "รายเดือนเต็มเดือน · ชามหลักสั่งเดี่ยว = ชามหลักทั้งหมด (เซตแยกเป็นหมวดของตัวเอง ไม่ได้อยู่ในชามหลัก)",
+    "set_units": "ชุด",
+    "alc": "ชามหลักสั่งเดี่ยว",
+    "set_div": "เซต ÷ ชามเดี่ยว",
+    "promo_title": "(ง) โปรโมชัน",
+    "promo": "โปร",
+    "combo_title": "(จ) จำลองคอมโบ",
+    "combo_pick": " — เลือก 2–3 เมนู",
+    "combo_opt": "— เมนู {0} —",
+    "combo_min": "เลือกอย่างน้อย 2 เมนู",
+    "pair": "คู่",
+    "both_bills": "บิลที่มีทั้งคู่",
+    "first_bills": "บิลที่มีเมนูแรก",
+    "take_first": "รับคู่ (÷ เมนูแรก)",
+    "take_second": "รับคู่ (÷ เมนูสอง)",
+    "combo_none": "ไม่พบคู่นี้ในข้อมูลคู่เมนู",
+    "combo_note": "คาดการณ์การรับคอมโบ ≈ บิลที่มีทั้งคู่ ÷ บิลที่มีเมนูแรก · lift &gt; 1 = ซื้อคู่กันบ่อยกว่าบังเอิญ",
+    "sa_title": "เซตช่วยเพิ่ม attach ไหม",
+    "sa_note": "ต่อมื้อหลัก (ชามหลัก + เซต) · เครื่องดื่ม = จ่ายเงิน + พรีเมียม · \"รวม\" นับตัวเลือกบังคับในเซต · \"ไม่นับในเซต\" = เมนู + ออปชัน (อัพเซล) · ส่วนต่าง = attach ที่เซตเพิ่มให้ · ใช้ช่วงวันที่ที่เลือก",
+    "mains": "มื้อหลัก",
+    "set_pct": "เซต%",
+    "sa_bev_all": "ดื่ม รวม",
+    "sa_bev_up": "ดื่ม ไม่นับในเซต",
+    "sa_lift": "เซตเพิ่ม",
+    "sa_side_all": "เคียง รวม",
+    "sa_side_up": "เคียง ไม่นับในเซต",
+    "src_opt": "ออปชัน",
+    "drill": "(ข) เจาะลึก: {0}",
+    "close": "ปิด",
+    "drill_note": "ยอดขายรายวัน 90 วัน ({0} – {1}) สูงสุด {2} ชิ้น/วัน",
+    "drill_route": "เส้นทางการขาย (ช่วงที่เลือก, {0} ชิ้น)",
+    "route": "เส้นทาง",
+    "drill_route_note": "ออปชัน/ในเซต = ตัวเลือกในเมนูอื่นที่เป็นเมนูนี้ (เช่น \"เกี๊ยวทอด\" ใน เพิ่มความอร่อย = C6) · ฿ ของออปชันอยู่ในยอดของจานหลักด้วย",
+    "drill_ch": "ช่องทาง (ช่วงที่เลือก, {0} ชิ้น)",
+    "drill_opts": "สัดส่วนตัวเลือก",
+    "no_opts": "ไม่มีตัวเลือก",
+    "often_with": "มักซื้อคู่กับ",
+    "no_pairs": "ไม่พบคู่",
+    "mg_top": "เมนูขายดี Grab (ราคา Grab)",
+    "mg_combo": "คอมโบที่ลูกค้าสั่ง (Combo Sales)",
+    "combo": "คอมโบ",
+    "as_of": "ณ วันที่",
+    "mg_camp": "ความคุ้มค่าแคมเปญ",
+    "campaign": "แคมเปญ",
+    "store_paid": "ร้านจ่าย ฿",
+    "camp_per_order": "฿/ออเดอร์ (ค่าแคมเปญ)",
+    "net_per_camp": "ยอดสุทธิ ÷ ค่าแคมเปญ",
+    "i_note": "โมเดลรายเดือน — ไม่ใช้ในต้นไม้รายวัน",
+    "i_pairs": "(ก) คู่เมนูที่ซื้อด้วยกัน (lift สูงสุด 5 คู่/สาขา, ≥ 10 บิล)",
+    "menu_a": "เมนู A",
+    "menu_b": "เมนู B",
+    "pct_bills": "% ของบิล",
+    "store_total": "รวมหน้าร้าน",
+    "b_dow": "วัน{0}",
+    "dom1": "วันที่ 1–7",
+    "dom2": "วันที่ 8–14",
+    "dom3": "วันที่ 15–21",
+    "dom4": "วันที่ 22–สิ้นเดือน",
+    "non_hol": "ไม่ใช่วันหยุด",
+    "rain1": "ฝน ≥ 1 มม.",
+    "no_rain": "ไม่มีฝน",
+    "i_cal": "(ข) ผลของปฏิทิน — ยอดสุทธิต่อวันเทียบค่าเฉลี่ยของสาขา",
+    "day_group": "กลุ่มวัน",
+    "i_ctx": "(ค) ยอดตามบริบท — ช่วงเวลา × ขนาดกลุ่ม",
+    "thb_main": "฿/ชามหลัก",
+    "i_att_dp": "Attach ต่อมื้อหลัก (ชามหลัก + เซต) ตามช่วงเวลา",
+    "h_weekly": "8 · สรุปรายสัปดาห์",
+    "w_note": "ข้อความสำหรับ LINE (v1 = คัดลอกแล้ววาง) · ใช้ตัวกรองสาขา",
+    "copy_btn": "📋 คัดลอกข้อความ",
+    "copied": "คัดลอกแล้ว ✓",
+    "w_head": "📊 Mama Pook · สรุปรายสัปดาห์ ({0} – {1})\n\n🎯 โอกาสเพิ่มยอด 3 อันดับ (฿/เดือน)\n",
+    "w_opp": "{0}. {1} · {2} · {3} {4} → {5} (เท่า{6}) ≈ +฿{7}/เดือน\n",
+    "w_low": "\n📉 วันที่ต่ำกว่าปกติมากที่สุด (7 วันล่าสุด)\n",
+    "w_noexp": "– ไม่มีข้อมูลค่าปกติ\n",
+    "w_day": "{0}. {1} {2} ({3}) ฿{4} vs ปกติ ฿{5} ({6}){7}\n",
+    "w_link": "\nดูรายละเอียด: https://mamapook-sales.pages.dev",
+    "g_month": "เดือน ",
+    "g_note": " · ใช้ตัวกรองสาขา (ไม่ใช้ช่วงวันที่ — ข้อมูล Grab มาเป็นรายเดือน) · เงิน Grab มาจากไฟล์ Grab เท่านั้น",
+    "sales": "ยอดขาย",
+    "ads": "โฆษณา",
+    "adj": "ปรับปรุงรายได้",
+    "g91": "9.1 กำไรต่อออเดอร์ (฿ ต่อออเดอร์)",
+    "g91_note": "รับจริง = ยอดโอน + โฆษณา + ปรับปรุงรายได้ · % ที่ได้รับ = รับจริง ÷ ยอดขาย",
+    "pct_kept": "% ที่ได้รับ",
+    "food_cost": "ต้นทุนอาหาร",
+    "profit_order": "กำไร/ออเดอร์",
+    "payout_tot": "รับจริงรวม ฿",
+    "g_unpaid": "{0} ออเดอร์ยังไม่จ่ายออก (ค่าธรรมเนียมยังไม่ครบ)",
+    "kw_brand": "คำค้นแบรนด์",
+    "kw_generic": "คำค้นทั่วไป",
+    "f_impr": "เห็นโฆษณา",
+    "f_visit": "เข้าร้าน",
+    "f_cart": "ใส่ตะกร้า",
+    "f_order": "สั่ง",
+    "from_prev": "{0} จากขั้นก่อน",
+    "g92": "9.2 โฆษณา",
+    "g92_note": "โฆษณาและคำค้นเป็นระดับแบรนด์ (ไม่แยกสาขา)",
+    "kw_group": "กลุ่มคำค้น",
+    "impr": "เห็น",
+    "clicks": "คลิก",
+    "ad_spend": "ค่าโฆษณา ฿",
+    "thb_order": "฿/ออเดอร์",
+    "orders_100": "ออเดอร์ต่อ ฿100",
+    "sales_thb": "ยอดขาย ฿",
+    "step": "ขั้น",
+    "count": "จำนวน",
+    "rate": "อัตรา",
+    "ad_hour": "ค่าโฆษณาตามชั่วโมง vs ออเดอร์",
+    "ad_orders": "ออเดอร์จากโฆษณา",
+    "all_orders_sel": "ออเดอร์ทั้งหมด (สาขาที่เลือก)",
+    "g93": "9.3 โปรโมชัน",
+    "g93_days": "วันที่มีแคมเปญ vs ไม่มี (ออเดอร์เฉลี่ย/วัน)",
+    "camp_days": "วันมีแคมเปญ",
+    "orders_day": "ออเดอร์/วัน",
+    "no_camp_days": "วันไม่มี",
+    "lost_thb": "฿ ที่เสีย (ประมาณ)",
+    "by_reason": "ตามเหตุผล",
+    "reason": "เหตุผล",
+    "cancelled_by": "ยกเลิกโดย",
+    "canceller": "ผู้ยกเลิก",
+    "by_hour": "ตามชั่วโมง",
+    "no_cancel": "ไม่มีออเดอร์ที่ถูกยกเลิกในเดือนนี้ในไฟล์ Transaction",
+    "g94": "9.4 ออเดอร์ที่เสียไป",
+    "g94_sum": " — {0} ออเดอร์ · ประมาณ ฿{1}",
+    "g94_note": "฿ ที่เสีย = จำนวนออเดอร์ × ยอดเฉลี่ยต่อออเดอร์ของสาขาในเดือนนั้น (ไฟล์ Grab ไม่บอกมูลค่าออเดอร์ที่ยกเลิก)",
+    "over1": " ⚠ เกิน 1%",
+    "g95": "9.5 ความเสี่ยงอันดับ",
+    "monthly_score": "คะแนนรายเดือน",
+    "avg_rating_daily": "คะแนนเฉลี่ย (รายวัน)",
+    "reviews": "รีวิว",
+    "avg_stars": "ดาวรีวิวเฉลี่ย",
+    "unreplied": "ยังไม่ตอบ",
+    "miwi": "ของผิด/ขาด (MIWI) — {0}",
+    "wrong": "ผิด",
+    "missing": "ขาด",
+    "reported": "แจ้ง",
+    "completed": "ออเดอร์สำเร็จ",
+    "unrep_title": "รีวิวที่ยังไม่ได้ตอบ ({0}) — ทุกเดือน",
+    "stars": "ดาว",
+    "text": "ข้อความ",
+    "no_text": "(ไม่มีข้อความ)",
+    "g96": "9.6 Grab vs หน้าร้าน — {0}",
+    "order_share_hr": "สัดส่วนออเดอร์ตามชั่วโมง",
+    "att_occ": "Attach ต่อมื้อหลัก (ชามหลัก + เซต)",
+    "grab_matched": "Grab (จับคู่ได้)",
+    "gap": "ช่องว่าง",
+    "top10": "เมนูขายดี 10 อันดับ (ชิ้น)",
+    "match_title": "การจับคู่ออเดอร์ Grab → POS",
+    "grab_orders": "ออเดอร์ Grab",
+    "coverage": "ครอบคลุม",
+    "th_water": "น้ำเปล่า%",
+    "th_paid": "จ่ายเงิน%",
+    "th_prem": "พรีเมียม%",
+    "th_side": "เครื่องเคียง%",
+    "th_des": "ของหวาน%"
+  },
+  en: {
+    "loading": "Loading data…",
+    "hdr_note": "Delivery orders in POS = Grab → see the Grab tab (POS prices are not Grab prices)",
+    "nav_tree": "1 Sales tree",
+    "nav_volume": "2 Volume",
+    "nav_ticket": "3 Avg ticket",
+    "nav_options": "4 Options",
+    "nav_members": "5 Members",
+    "nav_menu": "6 Menu & promo",
+    "nav_weekly": "8 Weekly summary",
+    "fb_copy": " (last saved copy)",
+    "stale": " ({0} old)",
+    "hrs": "{0} h",
+    "mins": "{0} min",
+    "fb_title": "Live data unavailable — using the embedded copy",
+    "live_title": "Live data from Supabase",
+    "data_at": "Data as of {0}{1}",
+    "through": "Data through",
+    "partial": "Today is still partial",
+    "new_data": "🔄 New data {0} — click to reload",
+    "load_fail": "Could not load data",
+    "render_err": "Render error: {0}",
+    "f_branch": "Branch",
+    "f_channel": "Channel",
+    "f_range": "Range",
+    "f_day": "Days",
+    "f_both": "Both",
+    "p_days": "{0} days",
+    "p_this": "This month",
+    "p_prev": "Last month",
+    "p_custom": "Custom",
+    "cal_wd": "Mo Tu We Th Fr Sa Su",
+    "cal_start": "Pick a start date",
+    "cal_end": "{0} – pick an end date",
+    "cal_clear": "Clear",
+    "cal_close": "Close",
+    "cal_prev": "Previous month",
+    "cal_next": "Next month",
+    "every_day": "All days",
+    "weekday": "Weekdays",
+    "weekend": "Weekends",
+    "holiday": "Holidays",
+    "all": "All",
+    "range_note": "Range {0} – {1} · {2} branches",
+    "month_note": "Monthly data: uses every month overlapping the date range (day-type filter does not apply)",
+    "ch_dine": "Dine-in",
+    "ch_take": "Takeaway",
+    "ch_deliv": "Delivery (POS)",
+    "dp_lunch": "Lunch 11–14",
+    "dp_non": "Off-peak",
+    "dp_dinner": "Dinner 17–21",
+    "side": "Sides",
+    "bev_paid": "Paid drinks",
+    "bev_prem": "Premium drinks",
+    "premium": "Premium drinks",
+    "dessert": "Desserts",
+    "sharing_long": "Sharing plates",
+    "water": "Water",
+    "set": "Set",
+    "sets": "Sets",
+    "tm_bevp": "Paid drinks",
+    "main_bowls": "Main bowls",
+    "grp_bev": "Drinks",
+    "grp_food": "Add-on food",
+    "m_all": "All",
+    "upsell": "Upsell",
+    "in_set": "In-set",
+    "total": "Total",
+    "no_grab": "No Grab data in the selected range",
+    "no_data": "No data in the selected range",
+    "nodata_short": "No data",
+    "leg_store": "In-store (POS)",
+    "store": "In-store",
+    "branch": "Branch",
+    "orders": "Orders",
+    "k_cust": "Customers",
+    "net": "Net sales",
+    "units": "Units",
+    "share": "Share",
+    "month": "Month",
+    "choice": "Choice",
+    "group": "Group",
+    "picks": "Picks",
+    "bills": "Bills",
+    "menu": "Menu",
+    "hr": "Hr",
+    "hour": "Hour",
+    "diff": "Diff",
+    "date": "Date",
+    "daypart": "Daypart",
+    "party_size": "Party size",
+    "channel": "Channel",
+    "lever": "Lever",
+    "unspecified": "Unknown",
+    "n_pax": "{0} pax",
+    "n_days": "{0} days",
+    "wait_cost": "Awaiting cost data",
+    "matched": "Matched",
+    "main_plus_set": "Bowls + sets",
+    "thb_unit": "฿ / unit",
+    "thb_bill": "฿ / bill",
+    "main_bill": "Bowls / bill",
+    "pair_bills": "Bills together",
+    "dow": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    "none": "None",
+    "h_tree": "1 · Sales tree",
+    "k_net": "Net sales",
+    "k_bills": "Bills",
+    "k_tkt_bill": "Avg ticket / bill",
+    "k_tkt_head": "Avg ticket / head",
+    "k_bpc": "Bowls per customer",
+    "note_attach": "Attach % (all) = menu + option + in-set · denominator = main bowls + sets · free items excluded (A13 free crispy pork for reviews, H4 free ice, H2 empty glass, free-redeem items)",
+    "pax_title": "Pax trust (bowls ÷ keyed customers, should be 0.9–1.3)",
+    "pax_line": "{0} of days trusted · avg ratio {1}",
+    "pax_fix": "Customer count must be keyed correctly",
+    "pax_note": "⚠ = keyed customer count unreliable → bowls used instead (main bowls + sets) on those days",
+    "tkt_order": "Ticket / order",
+    "disc_pct": "Discount %",
+    "warn_days": "{0} days used bowls instead of customers",
+    "tree_note": "Click ▸ to expand daypart → channel · attach % = units (menu + option + in-set) ÷ (main bowls + sets) · <b>(x%)</b> = in-set share (mandatory set picks) · Discount % = discount ÷ pre-discount sales",
+    "g_net": "Grab net sales",
+    "avg_order": "Avg / order",
+    "payout": "Payout",
+    "payout_ratio": "Payout ÷ sales",
+    "tg_note": "Analytics layer (grab.daily) + billing layer (grab.orders: store discount / commission / marketing fee / payout)",
+    "sales_bill": "Sales (billing)",
+    "store_disc": "Store discount",
+    "comm": "Commission",
+    "mkt": "Marketing fee",
+    "trends": "Trends",
+    "no_branch_shown": "No branches shown",
+    "mix_title": "Sales mix by category (shown branches combined)",
+    "raw": "Raw",
+    "avg7": "7-day avg",
+    "tnote_sm": "Lines = trailing 7-day average (sum ÷ sum) · ",
+    "tnote_raw": "Daily values · ",
+    "tnote_leg": " holiday · blue band = rain ≥ 10 mm (at any shown branch) · hover/tap a chart to see values",
+    "tt_net": "Net sales / day (฿)",
+    "tt_cust": "Customers / day",
+    "tt_tph": "Avg ticket / head (฿)",
+    "tt_set": "Sets ÷ (main bowls + sets)",
+    "tt_att": "Attach {0} {1} ÷ (main bowls + sets)",
+    "in_set_paren": "(in-set {0})",
+    "t_upsell_note": "Upsell = all − mandatory in-set picks · hover the chart to see the in-set share",
+    "mix_note": "Category sales = menu + option prices per category (before discount, options can overlap) so they do not equal net sales → scaled to 100% to show the mix only · Add-on food = sides + sharing + desserts",
+    "tg_net_day": "Grab net sales / day (฿)",
+    "tg_ord_day": "Grab orders / day",
+    "trends_grab": "Grab trends",
+    "h_volume": "2 · Volume",
+    "v_heat": "(a) Hourly density × branch",
+    "v_avgday": "Average per trading day",
+    "wait_seats": "Awaiting seat data",
+    "u_low": "Quiet",
+    "u_full": "Full",
+    "v_util": "Seat utilization (customers × dwell ÷ seats × hours)",
+    "v_dead": "(b) Dead hours — net sales by hour",
+    "v_band": "16:00–20:00 band = {0} of the day’s sales (฿{1})",
+    "pct_day": "% of day",
+    "v_exp": "(c) Expected vs actual",
+    "v_exp_note": "Expected = forecast from the branch’s own history · red &lt; −15% · green &gt; +15% · 🎌 holiday · 🌧 rain ≥ 1 mm",
+    "v_dwell": "(d) Average dwell time (bill opened → closed)",
+    "tables": "Tables",
+    "avg_min": "Avg minutes",
+    "ppl_table": "Guests / table",
+    "actual": "Actual",
+    "expected": "Expected",
+    "rain_mm": "Rain mm",
+    "showing": "Showing {0} of {1} rows (latest first)",
+    "vg_title": "Grab orders by hour vs in-store",
+    "vg_note": "Average orders per branch-day",
+    "h_ticket": "3 · Avg ticket",
+    "t_att": "(a) Attach % per main occasion (bowls + sets)",
+    "all_ch": "All channels",
+    "t_att_note": "All = menu + option + in-set · Upsell = ordered as its own item or as a paid option · In-set = mandatory pick inside a set · denominator = main bowls + sets · darker = closer to the best branch in the column",
+    "opp_set": "If <b>{0}</b> ({1}) sold <b>sets</b> like <b>{2}</b> (sets {3} of main occasions, now {4}) it would add ≈ <b>฿{5}/month</b> (= {6} main occasions × {7} × avg set price ฿{8}) — rough estimate: single bowls that switch to a set are not deducted",
+    "opp_lever": "If <b>{0}</b> ({1}) sold <b>{2}</b> like <b>{3}</b> ({4} per main occasion, now {5}) it would add ≈ <b>฿{6}/month</b> (= {7} main occasions × {8} × ฿{9})",
+    "t_opp": "(b) Opportunity (฿/month)",
+    "t_opp_tot": " — total ≈ ฿{0}/month",
+    "t_opp_note": "Based on the last 30 full days (ignores the date range) · uses the branch filter · click a row for the explanation · add-on levers (sides / drinks / desserts / sharing) use the upsell layer (in-set picks excluded) · \"Set\" = set share of main occasions × avg set price",
+    "now": "Now",
+    "best": "Best (branch)",
+    "main30": "Main occasions / 30 days",
+    "avg_price": "Avg price",
+    "plus_month": "+฿/month",
+    "party_line": "Solo {0} · pairs {1} · groups {2}",
+    "t_party": "(c) Party size and ticket distribution",
+    "party_bills": "Party size (bills)",
+    "tkt_bills": "Ticket per bill (bills)",
+    "tg_att": "Attach % per main occasion (bowls + sets) — Grab",
+    "tg_att_note": "Only Grab orders matched to a POS bill (\"Matched\" column) · counted as all = menu + option + in-set",
+    "tg_cross": "Cross-check from Grab menu sales (all orders)",
+    "units_order": "Units / order",
+    "thb_menu": "Menu ฿",
+    "h_options": "4 · Options",
+    "o_share": "(a) Choice share within group",
+    "picks_n": "Picks",
+    "share_all": "Overall share",
+    "thb_extra": "Extra ฿",
+    "o_tail": "(b) Unpopular tail (&lt; 2% of group, groups with ≥ 50 picks)",
+    "n_choices": " — {0} choices",
+    "o_route": "(c) Sharing route — as option vs standalone item",
+    "o_route_note": "Yellow = unit price differs by more than ฿5",
+    "opt_units": "Option (units)",
+    "menu_units": "Standalone (units)",
+    "diff_thb": "Diff ฿",
+    "o_dish": "(d) Options by dish",
+    "o_dish_note": "Choices with ≤ 2 picks per month removed",
+    "share_grp": "Share in group",
+    "og_title": "Grab options (from orders matched to POS · coverage {0})",
+    "og_none": "No options from matched orders",
+    "og_share": "Choice share within group",
+    "og_tail": "Unpopular tail (&lt; 2% of group, groups with ≥ 50 picks) — {0} choices",
+    "h_members": "5 · Members",
+    "m_nograb": "No customer data from Grab",
+    "m_share": "Share of bills with a member",
+    "member_bills": "Member bills",
+    "m_bar": "Share (full bar = 25%)",
+    "m_people": "Members (people)",
+    "m_wb": "Win-back list",
+    "m_wb_n": " — {0} people",
+    "code": "ID",
+    "last_branch": "Last branch",
+    "visits": "Visits",
+    "last": "Last visit",
+    "days_gone": "Days away",
+    "avg_thb": "Avg ฿",
+    "h_menu": "6 · Menu &amp; promo",
+    "c_main": "Mains",
+    "other": "Other",
+    "star": "Star",
+    "plow": "Plowhorse",
+    "puzzle": "Puzzle",
+    "dog": "Dog",
+    "mm_title": "(a) Menu matrix — popularity × price",
+    "mm_note": "Star = popular + high price · Plowhorse = popular + low price · Puzzle = slow + high price · Dog = slow + low price (split at the median: {0} units, ฿{1}) · profit axis: awaiting cost data · click an item to drill down",
+    "price_unit": "Price / unit",
+    "pop_q": "Popularity quartile",
+    "profit": "Profit",
+    "mset_title": "(c) Sets vs à-la-carte mains",
+    "mset_note": "Full calendar months · à-la-carte bowls = all main bowls (sets are their own category, not inside main bowls)",
+    "set_units": "Sets sold",
+    "alc": "À-la-carte bowls",
+    "set_div": "Sets ÷ à-la-carte",
+    "promo_title": "(d) Promotions",
+    "promo": "Promo",
+    "combo_title": "(e) Combo simulator",
+    "combo_pick": " — pick 2–3 items",
+    "combo_opt": "— Item {0} —",
+    "combo_min": "Pick at least 2 items",
+    "pair": "Pair",
+    "both_bills": "Bills with both",
+    "first_bills": "Bills with 1st item",
+    "take_first": "Take rate (÷ 1st item)",
+    "take_second": "Take rate (÷ 2nd item)",
+    "combo_none": "This pair is not in the item-pair data",
+    "combo_note": "Expected combo take rate ≈ bills with both ÷ bills with the 1st item · lift &gt; 1 = bought together more often than chance",
+    "sa_title": "Do sets lift attach?",
+    "sa_note": "Per main occasion (bowls + sets) · drinks = paid + premium · \"All\" counts mandatory in-set picks · \"Excl. in-set\" = menu + option (upsell) · difference = attach added by sets · uses the selected date range",
+    "mains": "Main occasions",
+    "set_pct": "Set %",
+    "sa_bev_all": "Drinks all",
+    "sa_bev_up": "Drinks excl. in-set",
+    "sa_lift": "Set adds",
+    "sa_side_all": "Sides all",
+    "sa_side_up": "Sides excl. in-set",
+    "src_opt": "Option",
+    "drill": "(b) Drill-down: {0}",
+    "close": "Close",
+    "drill_note": "Daily units, 90 days ({0} – {1}), max {2} units/day",
+    "drill_route": "Sales route (selected range, {0} units)",
+    "route": "Route",
+    "drill_route_note": "Option / in-set = this item picked as a choice on another item (e.g. fried wonton as an add-on = C6) · option ฿ is also counted in the main dish’s sales",
+    "drill_ch": "Channel (selected range, {0} units)",
+    "drill_opts": "Choice share",
+    "no_opts": "No options",
+    "often_with": "Often bought with",
+    "no_pairs": "No pairs found",
+    "mg_top": "Grab best sellers (Grab prices)",
+    "mg_combo": "Combos ordered (Combo Sales)",
+    "combo": "Combo",
+    "as_of": "As of",
+    "mg_camp": "Campaign value",
+    "campaign": "Campaign",
+    "store_paid": "Store paid ฿",
+    "camp_per_order": "฿ / order (campaign cost)",
+    "net_per_camp": "Net ÷ campaign cost",
+    "i_note": "Monthly model — not used in the daily tree",
+    "i_pairs": "(a) Items bought together (top 5 by lift per branch, ≥ 10 bills)",
+    "menu_a": "Item A",
+    "menu_b": "Item B",
+    "pct_bills": "% of bills",
+    "store_total": "In-store total",
+    "b_dow": "{0}",
+    "dom1": "Day 1–7",
+    "dom2": "Day 8–14",
+    "dom3": "Day 15–21",
+    "dom4": "Day 22–month end",
+    "non_hol": "Non-holidays",
+    "rain1": "Rain ≥ 1 mm",
+    "no_rain": "No rain",
+    "i_cal": "(b) Calendar effects — net sales per day vs branch average",
+    "day_group": "Day group",
+    "i_ctx": "(c) Sales by context — daypart × party size",
+    "thb_main": "฿ / main bowl",
+    "i_att_dp": "Attach % per main occasion (bowls + sets) by daypart",
+    "h_weekly": "8 · Weekly summary",
+    "w_note": "Message for LINE (v1 = copy and paste) · uses the branch filter",
+    "copy_btn": "📋 Copy message",
+    "copied": "Copied ✓",
+    "w_head": "📊 Mama Pook · Weekly summary ({0} – {1})\n\n🎯 Top 3 opportunities (฿/month)\n",
+    "w_opp": "{0}. {1} · {2} · {3} {4} → {5} (match {6}) ≈ +฿{7}/month\n",
+    "w_low": "\n📉 Days furthest below expected (last 7 days)\n",
+    "w_noexp": "– No expected-value data\n",
+    "w_day": "{0}. {1} {2} ({3}) ฿{4} vs expected ฿{5} ({6}){7}\n",
+    "w_link": "\nDetails: https://mamapook-sales.pages.dev",
+    "g_month": "Month ",
+    "g_note": " · uses the branch filter (not the date range — Grab data is monthly) · Grab money comes only from Grab files",
+    "sales": "Sales",
+    "ads": "Ads",
+    "adj": "Adjustments",
+    "g91": "9.1 Profit per order (฿ per order)",
+    "g91_note": "Payout = transfer + ads + adjustments · % kept = payout ÷ sales",
+    "pct_kept": "% kept",
+    "food_cost": "Food cost",
+    "profit_order": "Profit / order",
+    "payout_tot": "Total payout ฿",
+    "g_unpaid": "{0} orders not yet paid out (fees incomplete)",
+    "kw_brand": "Brand keywords",
+    "kw_generic": "Generic keywords",
+    "f_impr": "Saw ad",
+    "f_visit": "Visited store",
+    "f_cart": "Added to cart",
+    "f_order": "Ordered",
+    "from_prev": "{0} of previous step",
+    "g92": "9.2 Ads",
+    "g92_note": "Ads and keywords are brand-level (not split by branch)",
+    "kw_group": "Keyword group",
+    "impr": "Impressions",
+    "clicks": "Clicks",
+    "ad_spend": "Ad spend ฿",
+    "thb_order": "฿ / order",
+    "orders_100": "Orders per ฿100",
+    "sales_thb": "Sales ฿",
+    "step": "Step",
+    "count": "Count",
+    "rate": "Rate",
+    "ad_hour": "Ad spend by hour vs orders",
+    "ad_orders": "Orders from ads",
+    "all_orders_sel": "All orders (selected branches)",
+    "g93": "9.3 Promotions",
+    "g93_days": "Campaign days vs other days (avg orders / day)",
+    "camp_days": "Campaign days",
+    "orders_day": "Orders / day",
+    "no_camp_days": "Other days",
+    "lost_thb": "฿ lost (est.)",
+    "by_reason": "By reason",
+    "reason": "Reason",
+    "cancelled_by": "Cancelled by",
+    "canceller": "Cancelled by",
+    "by_hour": "By hour",
+    "no_cancel": "No cancelled orders this month in the Transaction file",
+    "g94": "9.4 Lost orders",
+    "g94_sum": " — {0} orders · approx. ฿{1}",
+    "g94_note": "฿ lost = orders × the branch’s average order value that month (Grab files do not give the value of cancelled orders)",
+    "over1": " ⚠ over 1%",
+    "g95": "9.5 Ranking risk",
+    "monthly_score": "Monthly rating",
+    "avg_rating_daily": "Avg rating (daily)",
+    "reviews": "Reviews",
+    "avg_stars": "Avg review stars",
+    "unreplied": "Unreplied",
+    "miwi": "Wrong / missing items (MIWI) — {0}",
+    "wrong": "Wrong",
+    "missing": "Missing",
+    "reported": "Reported",
+    "completed": "Completed orders",
+    "unrep_title": "Unreplied reviews ({0}) — all months",
+    "stars": "Stars",
+    "text": "Text",
+    "no_text": "(no text)",
+    "g96": "9.6 Grab vs in-store — {0}",
+    "order_share_hr": "Order share by hour",
+    "att_occ": "Attach % per main occasion (bowls + sets)",
+    "grab_matched": "Grab (matched)",
+    "gap": "Gap",
+    "top10": "Top 10 items (units)",
+    "match_title": "Grab → POS order matching",
+    "grab_orders": "Grab orders",
+    "coverage": "Coverage",
+    "th_water": "Water %",
+    "th_paid": "Paid %",
+    "th_prem": "Premium %",
+    "th_side": "Sides %",
+    "th_des": "Desserts %",
+    "br": {"gaysorn": "Gaysorn", "silom": "Silom", "occ": "OCC", "sathorn-square": "Sathorn", "all-seasons": "All Seasons", "rama9": "Rama 9"}
+  }
+};
+let LANG = 'th';
+try { if (localStorage.getItem('sw_lang') === 'en') LANG = 'en'; } catch (e) { /* storage blocked: default TH */ }
+// t('key', a0, a1, …) -> string with {0}, {1}, … substituted (single pass)
+function t(k, ...a) {
+  let v = T[LANG][k]; if (v === undefined) v = T.th[k];
+  if (v === undefined) { console.warn('i18n: missing key', k); return k; }
+  return typeof v === 'string' && a.length ? v.replace(/\{(\d+)\}/g, (m, i) => a[i] !== undefined ? a[i] : m) : v;
+}
+// label tables, rebuilt by applyLang() on every language switch
+let CH, DP, LEVER, DOW, NO_GRAB, legStore, legGrab, monthNote, MIXC, TMET, ATT, ATT_MODE;
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  CH = {dine_in:t('ch_dine'), take_away:t('ch_take'), delivery:t('ch_deliv')};
+  DP = {lunch:t('dp_lunch'), non_peak:t('dp_non'), dinner:t('dp_dinner')};
+  LEVER = {side:t('side'), bev_paid:t('bev_paid'), bev_premium:t('bev_prem'), dessert:t('dessert'), topping:t('sharing_long'), set:t('set')};
+  DOW = t('dow');
+  NO_GRAB = '<div class="card muted">' + t('no_grab') + '</div>';
+  legStore = '<h3 class="leg">' + t('leg_store') + '</h3>'; legGrab = '<h3 class="leg grab">Grab</h3>';
+  monthNote = '<div class="note">' + t('month_note') + '</div>';
+  MIXC = [[t('main_bowls'), '#4e79a7'], [t('sets'), '#f28e2b'], [t('grp_bev'), '#59a14f'], [t('grp_food'), '#e15759']];
+  TMET = [['side', t('side')], ['bev_p', t('tm_bevp')], ['bev_pr', t('premium')], ['top', 'Sharing'], ['des', t('dessert')], ['set', t('sets')]];
+  ATT = [['bev_w', t('water')], ['bev_p', t('bev_paid')], ['bev_pr', t('premium')], ['side', t('side')], ['top', t('sharing_long')], ['des', t('dessert')]];
+  ATT_MODE = [['all', t('m_all')], ['upsell', t('upsell')], ['set', t('in_set')]];
+  const fb = document.getElementById('freshBtn'); if (fb) fb.textContent = t('new_data', fb.dataset.g);
+}
+const langToggle = () => '<span class="pill lang">' + ['th', 'en'].map(k => `<button data-act="lang" data-k="${k}" class="${LANG === k ? 'on' : ''}">${k.toUpperCase()}</button>`).join('|') + '</span>';
+
+let D = null, FALLBACK = false;
+let B = {};                 // branch id -> {th, seats, open, close}
+let HOL = new Set();
+let TRUST = new Map();      // 'loc|d' -> pax_trust row
+// global filter state
+const F = {branches:new Set(), channel:'store', from:'', to:'', daytype:'all', preset:'30'};
+// per-section UI state
+const S = {open:new Set(), heat:'orders', attachCh:'all', attMode:'all', optGroup:null, dish:null, gOptGroup:null, menuCat:'main',
+  item:null, combo:['', '', ''], opp:null, gmonth:null,
+  tHide:new Set(), tOpen:true, tRaw:false, tMet:'side', tMode:'all'};   // trend block
+
+// ---------------------------------------------------------------- helpers
+function get(feed) { const p = feed.split('.'); return p.length > 1 ? (D[p[0]] || {})[p[1]] || [] : D[feed] || []; }
+// column-name -> index map for a feed, from the payload's own `cols` contract
+const _ix = {};
+function A(feed) { return _ix[feed] || (_ix[feed] = Object.fromEntries(D.cols[feed].map((c, i) => [c, i]))); }
+const fmt = (n, dp = 0) => (n == null || !isFinite(n)) ? '–' :
+  Number(n).toLocaleString('en-US', {minimumFractionDigits:dp, maximumFractionDigits:dp});
+const pct = (x, dp = 1) => (x == null || !isFinite(x)) ? '–' : (x * 100).toFixed(dp) + '%';
+const sgn = (x, dp = 1) => (x == null || !isFinite(x)) ? '–' : (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(dp) + '%';
+const div = (a, b) => b ? a / b : null;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+const bnRaw = id => LANG === 'en' ? (T.en.br[id] || id) : (B[id] && B[id].th) || id;   // plain text (LINE message)
+const bn = id => esc(bnRaw(id));                          // HTML-safe
+const sum = (arr, f) => arr.reduce((s, r) => s + (+f(r) || 0), 0);
+function addDays(s, n) { const t = new Date(s + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
+const dowOf = s => new Date(s + 'T00:00:00Z').getUTCDay();
+function dayOK(d) {
+  if (d < F.from || d > F.to) return false;
+  if (F.daytype === 'all') return true;
+  const w = dowOf(d), we = w === 0 || w === 6, h = HOL.has(d);
+  if (F.daytype === 'weekday') return !we && !h;
+  if (F.daytype === 'weekend') return we;
+  return h;
+}
+// rows(feed, {ch, allDates}) -> rows filtered by branch, date range / day type (or overlapping month), channel
+function rows(feed, o = {}) {
+  const a = A(feed), fm = F.from.slice(0, 7), tm = F.to.slice(0, 7);
+  return get(feed).filter(r =>
+    (a.loc === undefined || F.branches.has(r[a.loc])) &&
+    (o.allDates || a.d === undefined || dayOK(r[a.d])) &&
+    (o.allDates || a.ym === undefined || (r[a.ym] >= fm && r[a.ym] <= tm)) &&
+    (!o.ch || a.channel === undefined || o.ch.includes(r[a.channel])));
+}
+function group(arr, keyf) { const m = new Map(); for (const r of arr) { const k = keyf(r); if (!m.has(k)) m.set(k, []); m.get(k).push(r); } return m; }
+const selBranches = () => D.branches.map(b => b.id).filter(id => F.branches.has(id));
+function barCell(v, max, label, alt) {
+  const w = max > 0 && v > 0 ? Math.min(100, v / max * 100) : 0;
+  return `<div class="bw"><div class="bt"><div class="bar${alt ? ' alt' : ''}" style="width:${w.toFixed(1)}%"></div></div><span>${label}</span></div>`;
+}
+function heatBg(v, max) { const a = max > 0 && v > 0 ? 0.08 + 0.55 * v / max : 0; return `background:rgba(42,120,214,${a.toFixed(3)})`; }
+function table(head, body, cls = '') { return `<table class="${cls}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`; }
+const th = (labels) => labels.map(l => Array.isArray(l) ? `<th class="n">${l[0]}</th>` : `<th>${l}</th>`).join('');
+function kpi(v, l) { return `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
+// channel switch wrapper: store only / Grab only / both side by side
+function dual(storeFn, grabFn) {
+  if (F.channel === 'store') return storeFn();
+  if (F.channel === 'grab') return grabFn();
+  return `<div class="split"><div>${legStore}${storeFn()}</div><div>${legGrab}${grabFn()}</div></div>`;
+}
+const rangeNote = () => `<div class="note">${t('range_note', F.from, F.to, selBranches().length)}${F.daytype !== 'all' ? ' · ' + t(F.daytype) : ''}</div>`;
+
+// ---------------------------------------------------------------- tree aggregation (section 1, 3, 7, 9.6)
+const trusted = (loc, d) => { const r = TRUST.get(loc + '|' + d); return !!(r && r[A('pax_trust').trusted]); };
+function treeAgg(rs) {
+  const t = A('tree');
+  const s = {orders:0, pax:0, cust:0, main:0, set:0, bev_w:0, bev_p:0, bev_pr:0, side:0, top:0, des:0,
+    side_s:0, bev_p_s:0, bev_pr_s:0, des_s:0, top_s:0, gross:0, disc:0, net:0, bad:new Set()};
+  for (const r of rs) {
+    const tr = trusted(r[t.loc], r[t.d]);
+    // pax-trust rule: keyed pax only on trusted days, else 1 main occasion (bowl or set) = 1 customer
+    s.cust += tr && r[t.pax] ? r[t.pax] : r[t.main] + (+r[t.set] || 0);
+    if (!tr) s.bad.add(r[t.loc] + '|' + r[t.d]);
+    for (const k of ['orders', 'main', 'set', 'bev_w', 'bev_p', 'bev_pr', 'side', 'top', 'des', 'gross', 'disc', 'net',
+      'side_s', 'bev_p_s', 'bev_pr_s', 'des_s', 'top_s']) s[k] += +r[t[k]] || 0;
+  }
+  return s;
+}
+// main occasions = main bowls + sets (a set is a meal, Point 2026-10-07): the customer
+// fallback for bowls-per-customer and the denominator of EVERY attach %
+const occ = s => s.main + (s.set || 0);
+// attach units by source layer (Point 2026-10-07): side/bev/des/top in the tree feed = ALL
+// sources (menu line + paid option + set pick); `<k>_s` = the ในเซต layer (picks forced inside
+// a set). รวม = all · อัพเซล = all − ในเซต · ในเซต = set layer. Water has no set layer.
+const SETK = {bev_p:'bev_p_s', bev_pr:'bev_pr_s', side:'side_s', top:'top_s', des:'des_s'};
+function layer(s, k, mode) {
+  const all = k === 'bev' ? s.bev_p + s.bev_pr : s[k] || 0;
+  const st = k === 'bev' ? s.bev_p_s + s.bev_pr_s : (SETK[k] ? s[SETK[k]] : 0);
+  return mode === 'set' ? st : mode === 'upsell' ? all - st : all;
+}
+// "35% (ในเซต 7%)" — attach รวม with the set share as a muted sub-label
+const attCell = (s, k, cls = '') => `<td class="n ${cls}">${pct(div(layer(s, k, 'all'), occ(s)))}` +
+  (layer(s, k, 'set') > 0 ? ` <span class="muted" style="font-size:10.5px">(${(v => pct(v, v < 0.01 ? 1 : 0))(div(layer(s, k, 'set'), occ(s)))})</span>` : '') + '</td>';
+
+// ================================================================ 1. tree
+function renderTree() {
+  TRS = [];
+  document.getElementById('tree').innerHTML = '<h2>' + t('h_tree') + '</h2>' + rangeNote() + dual(treeStore, treeGrab);
+  trendDraw();
+}
+function treeStore() {
+  const rs = rows('tree', {ch:STORE}), tot = treeAgg(rs), tc = A('tree');
+  let h = '<div class="kpis">' + kpi('฿' + fmt(tot.net), t('k_net')) + kpi(fmt(tot.orders), t('k_bills')) +
+    kpi(fmt(tot.cust), t('k_cust') + (tot.bad.size ? ' ⚠' : '')) + kpi('฿' + fmt(div(tot.net, tot.orders)), t('k_tkt_bill')) +
+    kpi('฿' + fmt(div(tot.net, tot.cust)), t('k_tkt_head')) + kpi(fmt(tot.set), t('sets')) + kpi(fmt(div(occ(tot), tot.cust), 2), t('k_bpc')) + '</div>' +
+    '<div class="note">' + t('note_attach') + '</div>';
+  if (!rs.length) return h + '<div class="card muted">' + t('no_data') + '</div>';
+  // pax-trust strip
+  const pt = A('pax_trust'), ptr = rows('pax_trust');
+  h += '<div class="card"><b>' + t('pax_title') + '</b><div class="strip" style="margin-top:6px">';
+  for (const id of selBranches()) {
+    const br = ptr.filter(r => r[pt.loc] === id); if (!br.length) continue;
+    const ok = br.filter(r => r[pt.trusted]).length, rat = br.filter(r => r[pt.ratio] != null);
+    const share = ok / br.length, bad = share < 0.7;
+    h += `<div class="s${bad ? ' bad' : ''}"><b>${bn(id)}</b> ${t('pax_line', pct(share, 0), fmt(div(sum(rat, r => r[pt.ratio]), rat.length), 2))}${bad ? '<br><b class="r">' + t('pax_fix') + '</b>' : ''}</div>`;
+  }
+  h += '</div><div class="note">' + t('pax_note') + '</div></div>';
+  // expandable tree table: branch -> daypart -> channel
+  // table() wraps head in <thead><tr>…</tr>; the group row closes that tr and opens the column row
+  const head = `<th colspan="6"></th><th class="grp g1 gs" colspan="3">${t('grp_bev')}</th><th class="grp g2 gs" colspan="3">${t('grp_food')}</th><th class="grp gs" colspan="2"></th></tr>` +
+    '<tr>' + th(['', [t('orders')], [t('k_cust')], [t('main_bowls')], [t('sets')], [t('tkt_order')]]) +
+    `<th class="n g1 gs">${t('th_water')}</th><th class="n g1">${t('th_paid')}</th><th class="n g1">${t('th_prem')}</th>` +
+    `<th class="n g2 gs">${t('th_side')}</th><th class="n g2">Sharing%</th><th class="n g2">${t('th_des')}</th>` +
+    `<th class="n gs">${t('disc_pct')}</th><th class="n">${t('net')}</th>`;
+  const line = (label, s, cls, key) => {
+    const tw = key ? `<span class="tw" data-act="tree" data-k="${esc(key)}">${S.open.has(key) ? '▾' : '▸'}</span>` : '<span class="tw"></span>';
+    const warn = s.bad.size ? ` <span class="tag warn" title="${t('warn_days', s.bad.size)}">⚠ ${s.bad.size}</span>` : '';
+    return `<tr class="${cls.row || ''}"><td class="${cls.td || ''}">${tw}${label}${warn}</td><td class="n">${fmt(s.orders)}</td><td class="n">${fmt(s.cust)}</td><td class="n">${fmt(s.main)}</td><td class="n">${fmt(s.set)}</td>` +
+      `<td class="n">${fmt(div(s.net, s.orders))}</td>${attCell(s, 'bev_w', 'g1 gs')}${attCell(s, 'bev_p', 'g1')}${attCell(s, 'bev_pr', 'g1')}${attCell(s, 'side', 'g2 gs')}${attCell(s, 'top', 'g2')}${attCell(s, 'des', 'g2')}` +
+      `<td class="n gs">${pct(div(s.disc, s.gross))}</td><td class="n">${fmt(s.net)}</td></tr>`;
+  };
+  let body = '';
+  const byLoc = group(rs, r => r[tc.loc]);
+  for (const id of selBranches()) {
+    const lr = byLoc.get(id); if (!lr) continue;
+    body += line('<b>' + bn(id) + '</b>', treeAgg(lr), {}, id);
+    if (!S.open.has(id)) continue;
+    const byDp = group(lr, r => r[tc.daypart]);
+    for (const dp of DP_ORDER) {
+      const dr = byDp.get(dp); if (!dr) continue;
+      const k = id + '/' + dp;
+      body += line(DP[dp], treeAgg(dr), {td:'ind1'}, k);
+      if (!S.open.has(k)) continue;
+      const byCh = group(dr, r => r[tc.channel]);
+      for (const c of STORE) if (byCh.get(c)) body += line(CH[c], treeAgg(byCh.get(c)), {td:'ind2'}, null);
+    }
+  }
+  body += line(t('total'), tot, {row:'tot'}, null);
+  h += '<div class="card"><div class="note">' + t('tree_note') + '</div>' + table(head, body) + '</div>';
+  return h + trendBlock(rs);
+}
+function treeGrab() {
+  const g = A('grab.daily'), o = A('grab.orders'), dr = rows('grab.daily'), or = rows('grab.orders');
+  if (!dr.length && !or.length) return NO_GRAB;
+  const net = sum(dr, r => r[g.net]), n = sum(dr, r => r[g.orders]);
+  const bill = k => sum(or, r => r[o[k]]);
+  let h = '<div class="kpis">' + kpi('฿' + fmt(net), t('g_net')) + kpi(fmt(n), t('orders')) + kpi('฿' + fmt(div(net, n)), t('avg_order')) +
+    kpi('฿' + fmt(bill('payout')), t('payout')) + kpi(pct(div(bill('payout'), bill('gross'))), t('payout_ratio')) + '</div>';
+  let body = '';
+  const byD = group(dr, r => r[g.loc]), byO = group(or, r => r[o.loc]);
+  for (const id of selBranches()) {
+    const a = byD.get(id) || [], b = byO.get(id) || []; if (!a.length && !b.length) continue;
+    const nn = sum(a, r => r[g.orders]), ne = sum(a, r => r[g.net]), gs = k => sum(b, r => r[o[k]]);
+    body += `<tr><td><b>${bn(id)}</b></td><td class="n">${fmt(nn)}</td><td class="n">${fmt(ne)}</td><td class="n">${fmt(div(ne, nn))}</td>` +
+      `<td class="n">${fmt(gs('gross'))}</td><td class="n">${fmt(gs('disc'))}</td><td class="n">${fmt(gs('comm'))}</td><td class="n">${fmt(gs('mkt'))}</td><td class="n"><b>${fmt(gs('payout'))}</b></td></tr>`;
+  }
+  body += `<tr class="tot"><td>${t('total')}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(net)}</td><td class="n">${fmt(div(net, n))}</td><td class="n">${fmt(bill('gross'))}</td><td class="n">${fmt(bill('disc'))}</td><td class="n">${fmt(bill('comm'))}</td><td class="n">${fmt(bill('mkt'))}</td><td class="n">${fmt(bill('payout'))}</td></tr>`;
+  h += '<div class="card"><div class="note">' + t('tg_note') + '</div>' +
+    table(th([t('branch'), [t('orders')], [t('net')], [t('avg_order')], [t('sales_bill')], [t('store_disc')], [t('comm')], [t('mkt')], [t('payout')]]), body) + '</div>';
+  return h + trendGrab(dr);
+}
+
+// ================================================================ 1b. trend charts (spec Point 2026-10-07)
+// inline SVG, no libraries. trendBlock() emits empty [data-tc] slots + pushes lazy builders into TRS;
+// trendDraw() measures each slot and draws it 1:1 (viewBox = slot width), again on window resize.
+const PAL = {rama9:'#2a78d6', silom:'#e6862a', gaysorn:'#1f9e6e', occ:'#d0468c', 'sathorn-square':'#8a6bd8', 'all-seasons':'#2fb0c4'};
+const bcol = id => PAL[id] || Object.values(PAL)[Math.max(0, D.branches.findIndex(b => b.id === id)) % 6];
+// MIXC / TMET label tables: see applyLang()
+const TM = {l:46, r:10, t:10, b:22};
+let TRS = [], TCFG = {};
+const f1 = v => +v.toFixed(1);
+const kf = v => v >= 1000 ? (v / 1000).toFixed(v >= 10000 || v % 1000 === 0 ? 0 : 1) + 'k' : String(+v.toFixed(2));
+const dm = d => d.slice(8, 10) + '/' + d.slice(5, 7);
+function tDays() { const end = F.to < maxDate() ? F.to : maxDate(), out = []; for (let d = F.from; d <= end; d = addDays(d, 1)) if (dayOK(d)) out.push(d); return out; }
+const tSmooth = n => n > 14 && !S.tRaw;
+const tVis = () => selBranches().filter(id => !S.tHide.has(id));
+function tRain(days) {
+  const c = A('calendar'), ds = new Set(days), vis = new Set(tVis());
+  return new Set(get('calendar').filter(r => vis.has(r[c.loc]) && ds.has(r[c.d]) && (+r[c.rain] || 0) >= 10).map(r => r[c.d]));
+}
+// per selected branch: day-aligned {num, den, sub} arrays (null = no rows that day)
+function series(rs, metric, feed = 'tree') {
+  const a = A(feed), days = tDays(), cells = group(rs, r => r[a.loc] + '|' + r[a.d]), out = new Map();
+  for (const id of selBranches()) {
+    const x = {num:days.map(() => null), den:days.map(() => null), sub:days.map(() => null)};
+    days.forEach((d, i) => { const c = cells.get(id + '|' + d); if (c) [x.num[i], x.den[i], x.sub[i]] = cellVal(c, metric, a); });
+    out.set(id, x);
+  }
+  return out;
+}
+function cellVal(c, m, a) {
+  if (m === 'g_net') return [sum(c, r => r[a.net]), 1, 0];
+  if (m === 'g_ord') return [sum(c, r => r[a.orders]), 1, 0];
+  const s = treeAgg(c);   // same pax-trust customer rule + attach layers as the table
+  if (m === 'net') return [s.net, 1, 0];
+  if (m === 'cust') return [s.cust, 1, 0];
+  if (m === 'tph') return [s.net, s.cust, 0];
+  if (m === 'set') return [s.set, occ(s), 0];
+  return [layer(s, m, S.tMode), occ(s), layer(s, m, 'set')];
+}
+// ratio of sums over the trailing 7 points (raw when off); a day without rows stays a gap
+function smooth(num, den, on) {
+  return num.map((v, i) => {
+    if (den[i] == null) return null;
+    let a = 0, b = 0; for (let j = Math.max(0, i - (on ? 6 : 0)); j <= i; j++) if (den[j] != null) { a += num[j]; b += den[j]; }
+    return b ? a / b : null;
+  });
+}
+function niceMax(v) {
+  if (!(v > 0)) return {max:1, step:0.25};
+  const p = 10 ** Math.floor(Math.log10(v / 4)), step = [1, 2, 2.5, 5, 10].map(x => x * p).find(x => v / x <= 4.5);
+  return {max:Math.ceil(v / step - 1e-9) * step, step};
+}
+// shared frame: rain bands, y grid from 0, weekly dd/mm ticks, holiday dots, hover guide
+function frame(c, ymax, step, yf) {
+  const {w, h, days} = c, n = days.length, pw = w - TM.l - TM.r, ph = h - TM.t - TM.b, dx = n > 1 ? pw / (n - 1) : pw;
+  const X = i => TM.l + (n > 1 ? i * dx : pw / 2), Y = v => TM.t + ph - v / ymax * ph;
+  let s = '';
+  days.forEach((d, i) => { if (c.rain.has(d)) s += `<rect class="train" x="${f1(X(i) - dx / 2)}" y="${TM.t}" width="${f1(dx)}" height="${f1(ph)}"/>`; });
+  for (let v = 0; v <= ymax + step / 1e6; v += step) s += `<line class="gl" x1="${TM.l}" x2="${w - TM.r}" y1="${f1(Y(v))}" y2="${f1(Y(v))}"/><text x="${TM.l - 5}" y="${f1(Y(v) + 3)}" text-anchor="end">${yf(v)}</text>`;
+  let ti = n <= 14 ? days.map((d, i) => i) : days.map((d, i) => (F.daytype === 'all' ? dowOf(d) === 1 : i % 7 === 0) ? i : -1).filter(i => i >= 0);
+  const k = Math.max(1, Math.ceil(ti.length * 36 / pw)); ti = ti.filter((_, j) => j % k === 0);
+  for (const i of ti) s += `<text x="${f1(X(i))}" y="${h - 6}" text-anchor="middle">${dm(days[i])}</text>`;
+  let fg = `<line class="tg" x1="0" x2="0" y1="${TM.t}" y2="${f1(TM.t + ph)}" visibility="hidden"/>`;
+  days.forEach((d, i) => { if (HOL.has(d)) fg += `<circle class="thol" cx="${f1(X(i))}" cy="${f1(TM.t + ph)}" r="3.2"/>`; });
+  return {s, fg, X, Y};
+}
+const tsvg = (c, body) => `<div class="ttl">${c.title}</div><svg class="tsvg" data-k="${c.key}" viewBox="0 0 ${c.w} ${c.h}" style="width:100%;height:auto;display:block">${body}</svg>`;
+const dot = col => `<i class="dot" style="background:${col}"></i>`;
+function lineChart(c) {
+  const {max, step} = niceMax(Math.max(0, ...c.lines.flatMap(l => l.vals.filter(v => v != null))));
+  const {s, fg, X, Y} = frame(c, max, step, c.yf);
+  let p = '';
+  for (const l of c.lines) {
+    let d = '', pen = false;
+    l.vals.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + f1(X(i)) + ' ' + f1(Y(v)); pen = true; });
+    p += `<path d="${d}" fill="none" stroke="${l.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    l.vals.forEach((v, i) => { if (v != null && (c.days.length <= 14 || (l.vals[i - 1] == null && l.vals[i + 1] == null))) p += `<circle cx="${f1(X(i))}" cy="${f1(Y(v))}" r="2.3" fill="${l.color}"/>`; });
+  }
+  c.tip = c.tip || (i => c.lines.filter(l => l.vals[i] != null).sort((a, b) => b.vals[i] - a.vals[i])
+    .map(l => `<div>${dot(l.color)}${bn(l.id)} <b>${c.tf(l.vals[i], l.sub && l.sub[i])}</b></div>`).join('') || '<div class="muted">' + t('nodata_short') + '</div>');
+  return tsvg(c, s + p + fg + (c.lines.length ? '' : `<text x="${c.w / 2}" y="${c.h / 2}" text-anchor="middle">${t('no_branch_shown')}</text>`));
+}
+function areaChart(c) {
+  const {s, fg, X, Y} = frame(c, 1, 0.25, v => pct(v, 0)), n = c.days.length, cum = Array(n).fill(0);
+  let p = '';
+  for (const k of c.cats) {
+    const lo = cum.slice(); k.vals.forEach((v, i) => { if (v != null) cum[i] += v; });
+    for (let i = 0; i < n;) {   // one polygon per run of days that have data
+      if (k.vals[i] == null) { i++; continue; }
+      let j = i; while (j + 1 < n && k.vals[j + 1] != null) j++;
+      const idx = Array.from({length:j - i + 1}, (_, q) => i + q);
+      const pts = idx.map(q => f1(X(q)) + ',' + f1(Y(cum[q]))).concat(idx.reverse().map(q => f1(X(q)) + ',' + f1(Y(lo[q]))));
+      if (i === j) pts.splice(1, 0, f1(X(i) + 2) + ',' + f1(Y(cum[i])), f1(X(i) + 2) + ',' + f1(Y(lo[i])));
+      p += `<polygon points="${pts.join(' ')}" fill="${k.color}" fill-opacity=".8"/>`;
+      i = j + 1;
+    }
+  }
+  return tsvg(c, s + p + fg);
+}
+function mixCfg(rs, days, rain, sm) {
+  const tc = A('tree'), vis = new Set(tVis()), ix = new Map(days.map((d, i) => [d, i]));
+  const raw = MIXC.map(() => days.map(() => 0)), has = days.map(() => false);
+  for (const r of rs) {
+    const i = ix.get(r[tc.d]); if (i === undefined || !vis.has(r[tc.loc])) continue;
+    has[i] = true; raw[0][i] += +r[tc.main_thb] || 0; raw[1][i] += +r[tc.set_thb] || 0; raw[2][i] += +r[tc.bev_thb] || 0;
+    raw[3][i] += (+r[tc.side_thb] || 0) + (+r[tc.top_thb] || 0) + (+r[tc.des_thb] || 0);
+  }
+  const thb = raw.map(a => a.map((_, i) => { if (!has[i]) return null; let s = 0; for (let j = Math.max(0, i - (sm ? 6 : 0)); j <= i; j++) s += a[j]; return s; }));
+  const tot = days.map((_, i) => has[i] ? thb.reduce((s, a) => s + a[i], 0) : null);
+  const cats = MIXC.map(([l, color], j) => ({l, color, thb:thb[j], vals:thb[j].map((v, i) => tot[i] ? v / tot[i] : null)}));
+  return {days, rain, h:150, title:t('mix_title'), cats,
+    tip:i => cats.slice().reverse().map(k => `<div>${dot(k.color)}${k.l} <b>${pct(k.vals[i])}</b> <span class="muted">฿${fmt(k.thb[i])}</span></div>`).join('')};
+}
+// legend chips (toggle a branch on every chart) + raw/7-day toggle
+function tCtl(n) {
+  return '<div class="tchips">' + selBranches().map(id => `<button class="chip${S.tHide.has(id) ? ' off' : ''}" data-act="tchip" data-k="${esc(id)}">${dot(bcol(id))}${bn(id)}</button>`).join('') +
+    (n > 14 ? ' <span class="seg">' + [['raw', t('raw')], ['avg', t('avg7')]].map(([k, l]) => `<button data-act="tsm" data-k="${k}" class="${(k === 'raw') === !!S.tRaw ? 'on' : ''}">${l}</button>`).join('') + '</span>' : '') +
+    '</div><div class="note">' + (tSmooth(n) ? t('tnote_sm') : t('tnote_raw')) +
+    '<span style="color:#c0392b">●</span>' + t('tnote_leg') + '</div>';
+}
+function trendBlock(rs) {
+  const days = tDays(), n = days.length, sm = tSmooth(n), rain = tRain(days);
+  if (!n) return '';
+  const lines = (m, sub) => { const ser = series(rs, m); return tVis().map(id => { const x = ser.get(id);
+    return {id, color:bcol(id), vals:smooth(x.num, x.den, sm), sub:sub ? smooth(x.sub, x.den, sm) : null}; }); };
+  const cfg = (title, h, m, yf, tf, sub) => () => ({days, rain, h, title, lines:lines(m, sub), yf, tf});
+  const met = S.tMet, isSet = met === 'set', ml = TMET.find(x => x[0] === met)[1];
+  TRS.push(['net', cfg(t('tt_net'), 220, 'net', kf, v => '฿' + fmt(v))],
+    ['cust', cfg(t('tt_cust'), 190, 'cust', kf, v => fmt(v, sm ? 1 : 0))],
+    ['tph', cfg(t('tt_tph'), 190, 'tph', kf, v => '฿' + fmt(v))],
+    ['att', cfg(isSet ? t('tt_set') : t('tt_att', ml, S.tMode === 'upsell' ? t('upsell') : t('m_all')), 200, met, v => pct(v, 0),
+      (v, s) => pct(v) + (s > 0 ? ` <span class="muted">${t('in_set_paren', pct(s))}</span>` : ''), !isSet)],
+    ['mix', () => mixCfg(rs, days, rain, sm)]);
+  const segs = (act, list, cur) => '<span class="seg">' + list.map(([k, l]) => `<button data-act="${act}" data-k="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join('') + '</span>';
+  let h = `<div class="card"><h3 style="margin-top:0"><span class="tw" data-act="topen">${S.tOpen ? '▾' : '▸'}</span><span data-act="topen" style="cursor:pointer">${t('trends')}</span></h3>`;
+  if (S.tOpen) h += tCtl(n) + '<div data-tc="net"></div><div class="tgrid"><div data-tc="cust"></div><div data-tc="tph"></div></div>' +
+    '<div class="tbar">' + segs('tmet', TMET, met) + (isSet ? '' : ' ' + segs('tmode', [['all', t('m_all')], ['upsell', t('upsell')]], S.tMode)) + '</div><div data-tc="att"></div>' +
+    '<div class="note">' + t('t_upsell_note') + '</div>';
+  return h + '</div><div class="card"><div data-tc="mix"></div><div class="legend" style="margin-top:4px">' + MIXC.map(([l, c]) => `<span><i style="background:${c}"></i>${l}</span>`).join('') +
+    '</div><div class="note">' + t('mix_note') + '</div></div>';
+}
+// Grab, reduced: net/day + orders/day per branch from grab.daily
+function trendGrab(dr) {
+  const days = tDays(), n = days.length, sm = tSmooth(n), rain = tRain(days);
+  if (!n) return '';
+  const lines = m => { const ser = series(dr, m, 'grab.daily'); return tVis().map(id => ({id, color:bcol(id), vals:smooth(ser.get(id).num, ser.get(id).den, sm)})); };
+  TRS.push(['g_net', () => ({days, rain, h:190, title:t('tg_net_day'), lines:lines('g_net'), yf:kf, tf:v => '฿' + fmt(v)})],
+    ['g_ord', () => ({days, rain, h:190, title:t('tg_ord_day'), lines:lines('g_ord'), yf:kf, tf:v => fmt(v, sm ? 1 : 0)})]);
+  return '<div class="card"><h3 style="margin-top:0">' + t('trends_grab') + '</h3>' + (F.channel === 'grab' ? tCtl(n) : '') +
+    '<div class="tgrid"><div data-tc="g_net"></div><div data-tc="g_ord"></div></div></div>';
+}
+function trendDraw() {
+  TCFG = {};
+  for (const [key, build] of TRS) {
+    const el = document.querySelector(`[data-tc="${key}"]`); if (!el) continue;
+    const c = Object.assign(build(), {key, w:Math.max(260, Math.round(el.clientWidth) || 600)});
+    el.innerHTML = (c.cats ? areaChart : lineChart)(c); TCFG[key] = c;
+  }
+}
+function tHover(e) {
+  const tip = document.getElementById('ttip'), sv = e.target.closest && e.target.closest('svg.tsvg');
+  document.querySelectorAll('svg.tsvg .tg').forEach(g => { if (!sv || !sv.contains(g)) g.setAttribute('visibility', 'hidden'); });
+  const c = sv && TCFG[sv.dataset.k];
+  if (!c) { tip.style.display = 'none'; return; }
+  const r = sv.getBoundingClientRect(), n = c.days.length, pw = c.w - TM.l - TM.r;
+  const i = n > 1 ? Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left) * c.w / r.width - TM.l) / pw * (n - 1)))) : 0;
+  const g = sv.querySelector('.tg'), x = f1(n > 1 ? TM.l + i * pw / (n - 1) : TM.l + pw / 2), d = c.days[i];
+  g.setAttribute('x1', x); g.setAttribute('x2', x); g.setAttribute('visibility', 'visible');
+  tip.innerHTML = `<b>${dm(d)}/${d.slice(0, 4)} ${DOW[dowOf(d)]}</b>${HOL.has(d) ? ' 🎌' : ''}${c.rain.has(d) ? ' 🌧' : ''}` + c.tip(i);
+  tip.style.display = 'block';
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = Math.max(4, e.clientX + 14 + tw > innerWidth ? e.clientX - tw - 14 : e.clientX + 14) + 'px';
+  tip.style.top = Math.max(4, Math.min(innerHeight - th - 4, e.clientY - th - 10)) + 'px';
+}
+document.addEventListener('pointermove', tHover);
+document.addEventListener('pointerdown', tHover);
+let _rsz = null;
+window.addEventListener('resize', () => { clearTimeout(_rsz); _rsz = setTimeout(() => { if (D && current() === 'tree') trendDraw(); }, 200); });
+
+// ================================================================ 2. volume
+function renderVolume() {
+  document.getElementById('volume').innerHTML = '<h2>' + t('h_volume') + '</h2>' + rangeNote() + dual(volumeStore, volumeGrab);
+}
+function volumeStore() {
+  const a = A('hourly'), rs = rows('hourly', {ch:STORE});
+  // pax-trust rule (same as tree): keyed pax only on trusted branch-days, else main bowls
+  const hourCust = r => trusted(r[a.loc], r[a.d]) && r[a.pax] ? r[a.pax] : r[a.main];
+  if (!rs.length) return '<div class="card muted">' + t('no_data') + '</div>';
+  const hours = [...new Set(rs.map(r => r[a.hour]))].sort((x, y) => x - y);
+  const metric = S.heat, byLoc = group(rs, r => r[a.loc]);
+  // (a) heatmap hour x branch, average per trading day
+  let max = 0; const cells = {};
+  for (const [id, lr] of byLoc) {
+    const days = new Set(lr.map(r => r[a.d])).size;
+    for (const r of lr) { const k = id + '|' + r[a.hour]; cells[k] = (cells[k] || 0) + (metric === 'pax' ? hourCust(r) : r[a[metric]]) / days; }
+  }
+  for (const v of Object.values(cells)) max = Math.max(max, v);
+  let body = '';
+  for (const id of selBranches()) {
+    if (!byLoc.get(id)) continue;
+    body += `<tr><td>${bn(id)}</td>` + hours.map(hh => { const v = cells[id + '|' + hh] || 0; return `<td class="n" style="${heatBg(v, max)}">${v ? fmt(v, metric === 'net' ? 0 : 1) : ''}</td>`; }).join('') + '</tr>';
+  }
+  let h = '<div class="card"><b>' + t('v_heat') + '</b> <span class="seg">' +
+    [['orders', t('orders')], ['pax', t('k_cust')], ['net', t('net')]].map(([k, l]) => `<button data-act="heat" data-k="${k}" class="${metric === k ? 'on' : ''}">${l}</button>`).join('') +
+    '</span><div class="note">' + t('v_avgday') + '</div>' +
+    table('<th>' + t('branch') + '</th>' + hours.map(x => `<th class="n">${x}:00</th>`).join(''), body, 'heat');
+  // utilization = pax-hours / (seats x hours); seats not yet supplied -> placeholder
+  const dw = A('dwell'), dwr = rows('dwell');
+  const dpHours = (b, dp) => dp === 'lunch' ? 3 : dp === 'dinner' ? Math.max(0, Math.min(b.close, 21) - 17) : Math.max(0, (b.close - b.open) - 3 - Math.max(0, Math.min(b.close, 21) - 17));
+  const dpOf = hh => hh >= 11 && hh <= 13 ? 'lunch' : hh >= 17 && hh <= 20 ? 'dinner' : 'non_peak';
+  let ub = '';
+  for (const id of selBranches()) {
+    const b = B[id], lr = byLoc.get(id); if (!lr) continue;
+    ub += `<tr><td>${bn(id)}</td>` + DP_ORDER.map(dp => {
+      if (!b.seats) return '<td class="muted">' + t('wait_seats') + '</td>';
+      const days = new Set(lr.map(r => r[a.d])).size;
+      const pax = sum(lr.filter(r => r[a.channel] === 'dine_in' && dpOf(r[a.hour]) === dp), hourCust);
+      const ds = dwr.filter(r => r[dw.loc] === id && r[dw.daypart] === dp);
+      const mins = div(sum(ds, r => r[dw.avg_min] * r[dw.sessions]), sum(ds, r => r[dw.sessions])) || 0;
+      const u = div(pax * mins / 60, b.seats * dpHours(b, dp) * days);
+      const tag = u == null ? '' : u < 0.5 ? '<span class="tag warn">' + t('u_low') + '</span>' : u > 0.8 ? '<span class="tag ok">' + t('u_full') + '</span>' : '';
+      return `<td class="n">${pct(u, 0)}${tag}</td>`;
+    }).join('') + '</tr>';
+  }
+  h += '<h3>' + t('v_util') + '</h3>' + table(th([t('branch'), ...DP_ORDER.map(d => DP[d])]), ub) + '</div>';
+  // (b) dead hours: revenue by hour, 16-20 band highlighted
+  const byH = group(rs, r => r[a.hour]), totNet = sum(rs, r => r[a.net]);
+  let hmax = 0; for (const [, v] of byH) hmax = Math.max(hmax, sum(v, r => r[a.net]));
+  let hb = '', band = 0;
+  for (const hh of hours) {
+    const v = sum(byH.get(hh) || [], r => r[a.net]), inBand = hh >= 16 && hh < 20; if (inBand) band += v;
+    hb += `<tr class="${inBand ? 'hl' : ''}"><td>${hh}:00</td><td class="n">${fmt(v)}</td><td>${barCell(v, hmax, pct(div(v, totNet)))}</td></tr>`;
+  }
+  h += `<div class="card"><b>${t('v_dead')}</b><div class="note">${t('v_band', pct(div(band, totNet)), fmt(band))}</div>` +
+    table(th([t('hour'), [t('net')], t('pct_day')]), hb) + '</div>';
+  // (c) expected vs actual from calendar
+  h += '<div class="card"><b>' + t('v_exp') + '</b> <span class="note">' + t('v_exp_note') + '</span>' + calendarTable(calDays(rows('calendar', {ch:STORE})), 120) + '</div>';
+  // (d) dwell
+  const byDw = group(dwr, r => r[dw.loc] + '|' + r[dw.daypart]);
+  let db = '';
+  for (const id of selBranches()) for (const dp of DP_ORDER) {
+    const x = byDw.get(id + '|' + dp); if (!x) continue;
+    const n = sum(x, r => r[dw.sessions]);
+    db += `<tr><td>${bn(id)}</td><td>${DP[dp]}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(div(sum(x, r => r[dw.avg_min] * r[dw.sessions]), n), 1)}</td><td class="n">${fmt(div(sum(x, r => r[dw.avg_party] * r[dw.sessions]), n), 2)}</td></tr>`;
+  }
+  h += '<div class="card"><b>' + t('v_dwell') + '</b>' + table(th([t('branch'), t('daypart'), [t('tables')], [t('avg_min')], [t('ppl_table')]]), db) + '</div>';
+  return h;
+}
+// calendar rows -> per branch-day {loc,d,net,orders,exp,netE,hol,rain,dow,dom}
+function calDays(rs) {
+  const c = A('calendar'), m = new Map();
+  for (const r of rs) {
+    const k = r[c.loc] + '|' + r[c.d];
+    if (!m.has(k)) m.set(k, {loc:r[c.loc], d:r[c.d], net:0, orders:0, exp:0, netE:0, hol:r[c.hol], rain:r[c.rain], dow:r[c.dow], dom:r[c.dom]});
+    const x = m.get(k); x.net += r[c.net]; x.orders += r[c.orders];
+    if (r[c.expected] != null) { x.exp += r[c.expected]; x.netE += r[c.net]; }
+  }
+  for (const x of m.values()) x.gap = x.exp ? x.netE / x.exp - 1 : null;
+  return [...m.values()];
+}
+function calendarTable(days, limit) {
+  const list = days.slice().sort((x, y) => y.d.localeCompare(x.d) || x.loc.localeCompare(y.loc));
+  let b = '';
+  for (const x of list.slice(0, limit)) {
+    const cls = x.gap == null ? '' : x.gap < -0.15 ? 'bad' : x.gap > 0.15 ? 'ok' : '';
+    b += `<tr class="${cls}"><td>${x.d} ${DOW[dowOf(x.d)]}${x.hol ? ' 🎌' : ''}${x.rain >= 1 ? ' 🌧' : ''}</td><td>${bn(x.loc)}</td><td class="n">${fmt(x.orders)}</td><td class="n">${fmt(x.net)}</td><td class="n">${x.exp ? fmt(x.exp) : '–'}</td><td class="n">${sgn(x.gap)}</td><td class="n">${x.rain == null ? '–' : fmt(x.rain, 1)}</td></tr>`;
+  }
+  return table(th([t('date'), t('branch'), [t('orders')], [t('actual')], [t('expected')], [t('diff')], [t('rain_mm')]]), b) +
+    (list.length > limit ? `<div class="note">${t('showing', limit, list.length)}</div>` : '');
+}
+function volumeGrab() {
+  const p = A('grab.peak'), pr = rows('grab.peak');
+  if (!pr.length) return NO_GRAB;
+  const a = A('hourly'), hr = rows('hourly', {ch:STORE});
+  const gd = new Set(pr.map(r => r[p.loc] + r[p.d])).size || 1, sd = new Set(hr.map(r => r[a.loc] + r[a.d])).size || 1;
+  const gh = {}, sh = {};
+  for (const r of pr) gh[r[p.hour]] = (gh[r[p.hour]] || 0) + r[p.orders] / gd;
+  for (const r of hr) sh[r[a.hour]] = (sh[r[a.hour]] || 0) + r[a.orders] / sd;
+  const hours = [...new Set([...Object.keys(gh), ...Object.keys(sh)].map(Number))].filter(x => (gh[x] || 0) + (sh[x] || 0) > 0.05).sort((x, y) => x - y);
+  const gm = Math.max(...hours.map(x => gh[x] || 0)), sm = Math.max(...hours.map(x => sh[x] || 0));
+  let b = '';
+  for (const x of hours) b += `<tr class="${x >= 16 && x < 20 ? 'hl' : ''}"><td>${x}:00</td><td>${barCell(gh[x] || 0, gm, fmt(gh[x] || 0, 2), true)}</td><td>${barCell(sh[x] || 0, sm, fmt(sh[x] || 0, 2))}</td></tr>`;
+  return '<div class="card"><b>' + t('vg_title') + '</b><div class="note">' + t('vg_note') + '</div>' + table(th([t('hour'), 'Grab', t('store')]), b) + '</div>';
+}
+
+// ================================================================ 3. ticket
+// ATT / ATT_MODE label tables: see applyLang()
+function renderTicket() {
+  document.getElementById('ticket').innerHTML = '<h2>' + t('h_ticket') + '</h2>' + rangeNote() + dual(ticketStore, ticketGrab);
+}
+function ticketStore() {
+  const tc = A('tree'), ch = S.attachCh === 'all' ? STORE : [S.attachCh];
+  const byLoc = group(rows('tree', {ch}), r => r[tc.loc]);
+  const ag = {}; for (const id of selBranches()) if (byLoc.get(id)) ag[id] = treeAgg(byLoc.get(id));
+  const md = S.attMode, val = (s, k) => div(layer(s, k, md), occ(s));
+  const best = ATT.map(([k]) => Math.max(0, ...Object.values(ag).map(s => val(s, k) || 0)));
+  let b = '';
+  for (const [id, s] of Object.entries(ag)) b += `<tr><td>${bn(id)}</td><td class="n">${fmt(occ(s))}</td>` + ATT.map(([k], i) => { const v = val(s, k); return `<td class="n" style="${heatBg(v, best[i])}">${pct(v)}</td>`; }).join('') + '</tr>';
+  let h = '<div class="card"><b>' + t('t_att') + '</b> <span class="seg">' +
+    [['all', t('all_ch')], ...STORE.map(c => [c, CH[c]])].map(([k, l]) => `<button data-act="attch" data-k="${k}" class="${S.attachCh === k ? 'on' : ''}">${l}</button>`).join('') +
+    '</span> <span class="seg">' + ATT_MODE.map(([k, l]) => `<button data-act="attmode" data-k="${k}" class="${md === k ? 'on' : ''}">${l}</button>`).join('') + '</span>' +
+    '<div class="note">' + t('t_att_note') + '</div>' +
+    table(th([t('branch'), [t('main_plus_set')], ...ATT.map(x => [x[1]])]), b, 'heat') + '</div>';
+  // (b) opportunity calculator
+  const o = A('opportunity');
+  const op = get('opportunity').filter(r => F.branches.has(r[o.loc])).sort((x, y) => (y[o.uplift] || 0) - (x[o.uplift] || 0));
+  const totUp = sum(op, r => r[o.uplift]);
+  let ob = '';
+  op.forEach(r => {
+    const key = r[o.loc] + '|' + r[o.channel] + '|' + r[o.lever], chL = esc(CH[r[o.channel]] || r[o.channel]), lvL = esc(LEVER[r[o.lever]] || r[o.lever]);
+    ob += `<tr class="click${S.opp === key ? ' sel' : ''}" data-act="opp" data-k="${esc(key)}"><td>${bn(r[o.loc])}</td><td>${chL}</td><td>${lvL}</td><td class="n">${pct(r[o.rate])}</td><td class="n">${pct(r[o.best_rate])} (${bn(r[o.best_loc])})</td><td class="n">${fmt(r[o.main30])}</td><td class="n">${fmt(r[o.price])}</td><td class="n"><b>+${fmt(r[o.uplift])}</b></td></tr>`;
+    if (S.opp === key) ob += `<tr class="sel"><td colspan="8">` + (r[o.lever] === 'set'
+      ? t('opp_set', bn(r[o.loc]), chL, bn(r[o.best_loc]), pct(r[o.best_rate]), pct(r[o.rate]), fmt(r[o.uplift]), fmt(r[o.main30]), pct(r[o.best_rate] - r[o.rate]), fmt(r[o.price]))
+      : t('opp_lever', bn(r[o.loc]), chL, lvL, bn(r[o.best_loc]), pct(r[o.best_rate]), pct(r[o.rate]), fmt(r[o.uplift]), fmt(r[o.main30]), pct(r[o.best_rate] - r[o.rate]), fmt(r[o.price]))) + '</td></tr>';
+  });
+  h += `<div class="card"><b>${t('t_opp')}</b>${t('t_opp_tot', fmt(totUp))}<div class="note">${t('t_opp_note')}</div>` +
+    table(th([t('branch'), t('channel'), t('lever'), [t('now')], [t('best')], [t('main30')], [t('avg_price')], [t('plus_month')]]), ob) + '</div>';
+  // (c) party size mix + ticket histogram
+  const pa = A('party'), prs = rows('party', {ch});
+  const PB = ['1', '2', '3-4', '5+', 'n/a'], PC = ['#2a78d6', '#5aa0e6', '#e6a028', '#c0392b', '#aaa'];
+  const tk = A('ticket'), trs = rows('ticket', {ch});
+  const TB = ['<150', '150-249', '250-399', '400-599', '600+'], TC = ['#cfe0f5', '#9cc2ec', '#5aa0e6', '#2a78d6', '#174a8a'];
+  const stack = (vals, cols) => { const s = vals.reduce((x, y) => x + y, 0) || 1; return '<div class="stack">' + vals.map((v, i) => `<div style="width:${v / s * 100}%;background:${cols[i]}" title="${pct(v / s)}"></div>`).join('') + '</div>'; };
+  let pb = '';
+  for (const id of selBranches()) {
+    const pr = prs.filter(r => r[pa.loc] === id), tr = trs.filter(r => r[tk.loc] === id); if (!pr.length && !tr.length) continue;
+    const pv = PB.map(k => sum(pr.filter(r => r[pa.bucket] === k), r => r[pa.bills]));
+    const tv = TB.map(k => sum(tr.filter(r => r[tk.bucket] === k), r => r[tk.bills]));
+    const known = pv.slice(0, 4).reduce((x, y) => x + y, 0) || 1;
+    pb += `<tr><td>${bn(id)}</td><td>${stack(pv, PC)}<div class="note">${t('party_line', pct(pv[0] / known, 0), pct(pv[1] / known, 0), pct((pv[2] + pv[3]) / known, 0))}</div></td><td>${stack(tv, TC)}</td></tr>`;
+  }
+  h += '<div class="card"><b>' + t('t_party') + '</b>' + monthNote +
+    '<div class="legend">' + PB.map((k, i) => `<span><i style="background:${PC[i]}"></i>${k === 'n/a' ? t('unspecified') : t('n_pax', k)}</span>`).join('') + ' | ' +
+    TB.map((k, i) => `<span><i style="background:${TC[i]}"></i>฿${k}</span>`).join('') + '</div>' +
+    table(th([t('branch'), t('party_bills'), t('tkt_bills')]), pb) + '</div>';
+  return h;
+}
+function ticketGrab() {
+  const k = A('grab.basket'), br = rows('grab.basket'), mc = A('grab.match_cov'), cr = rows('grab.match_cov');
+  if (!br.length) return NO_GRAB;
+  const L = [['sides', t('side')], ['bev_paid', t('bev_paid')], ['bev_prem', t('premium')], ['dessert', t('dessert')], ['topping', t('sharing_long')]];
+  let b = '';
+  for (const id of selBranches()) {
+    const x = br.filter(r => r[k.loc] === id); if (!x.length) continue;
+    const mains = sum(x, r => r[k.mains] + (+r[k.sets] || 0)), cov = cr.filter(r => r[mc.loc] === id);
+    b += `<tr><td>${bn(id)}</td><td class="n">${pct(div(sum(cov, r => r[mc.matched]), sum(cov, r => r[mc.orders])), 0)}</td><td class="n">${fmt(mains)}</td>` +
+      L.map(([c]) => x.every(r => r[k[c]] == null) ? '<td class="n muted">–</td>' : `<td class="n">${pct(div(sum(x, r => r[k[c]]), mains))}</td>`).join('') + '</tr>';
+  }
+  let h = '<div class="card"><b>' + t('tg_att') + '</b><div class="note">' + t('tg_att_note') + '</div>' +
+    table(th([t('branch'), [t('matched')], [t('main_plus_set')], ...L.map(x => [x[1]])]), b) + '</div>';
+  // aggregate cross-check from grab.menu (all orders, Grab money)
+  const m = A('grab.menu'), mr = rows('grab.menu'), g = A('grab.daily'), gr = rows('grab.daily');
+  let cb = '';
+  for (const id of selBranches()) {
+    const x = mr.filter(r => r[m.loc] === id); if (!x.length) continue;
+    const u = sum(x, r => r[m.units]), n = sum(gr.filter(r => r[g.loc] === id), r => r[g.orders]);
+    cb += `<tr><td>${bn(id)}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(u)}</td><td class="n">${fmt(div(u, n), 2)}</td><td class="n">${fmt(sum(x, r => r[m.thb]))}</td><td class="n">${fmt(div(sum(x, r => r[m.thb]), u))}</td></tr>`;
+  }
+  h += '<div class="card"><b>' + t('tg_cross') + '</b>' + table(th([t('branch'), [t('orders')], [t('units')], [t('units_order')], [t('thb_menu')], [t('thb_unit')]]), cb) + '</div>';
+  return h;
+}
+
+// ================================================================ 4. options
+function renderOptions() {
+  document.getElementById('options').innerHTML = '<h2>' + t('h_options') + '</h2>' + rangeNote() + monthNote + dual(optionsStore, optionsGrab);
+}
+function optionsStore() {
+  const ch = STORE;
+  const o = A('options'), rs = rows('options', {ch});
+  if (!rs.length) return '<div class="card muted">' + t('no_data') + '</div>';
+  const byG = group(rs, r => r[o.group]);
+  const groups = [...byG.entries()].map(([g, x]) => [g, sum(x, r => r[o.picks])]).sort((x, y) => y[1] - x[1]);
+  if (!S.optGroup || !byG.has(S.optGroup)) S.optGroup = groups[0][0];
+  const gr = byG.get(S.optGroup), ids = selBranches().filter(id => gr.some(r => r[o.loc] === id));
+  const choices = group(gr, r => r[o.choice]);
+  const locTot = {}; for (const r of gr) locTot[r[o.loc]] = (locTot[r[o.loc]] || 0) + r[o.picks];
+  const gTot = sum(gr, r => r[o.picks]);
+  let b = '';
+  for (const [c, x] of [...choices.entries()].sort((p, q) => sum(q[1], r => r[o.picks]) - sum(p[1], r => r[o.picks]))) {
+    const tot = sum(x, r => r[o.picks]);
+    b += `<tr><td>${esc(c)}</td>` + ids.map(id => { const v = div(sum(x.filter(r => r[o.loc] === id), r => r[o.picks]), locTot[id]); return `<td>${barCell(v || 0, 1, pct(v, 0))}</td>`; }).join('') +
+      `<td class="n">${fmt(tot)}</td><td class="n">${pct(div(tot, gTot))}</td><td class="n">${fmt(sum(x, r => r[o.paid_thb]))}</td></tr>`;
+  }
+  let h = `<div class="card"><b>${t('o_share')}</b> <select data-act="optg">` +
+    groups.map(([g, n]) => `<option value="${esc(g)}"${g === S.optGroup ? ' selected' : ''}>${esc(g)} (${fmt(n)})</option>`).join('') + '</select>' +
+    table(th([t('choice'), ...ids.map(bn), [t('picks_n')], [t('share_all')], [t('thb_extra')]]), b) + '</div>';
+  // (b) unpopular tail: < 2% of their group's picks
+  let tb = '', nTail = 0;
+  for (const [g, x] of byG) {
+    const gt = sum(x, r => r[o.picks]); if (gt < 50) continue;
+    for (const [c, y] of group(x, r => r[o.choice])) {
+      const v = sum(y, r => r[o.picks]); if (v / gt >= 0.02) continue;
+      nTail++; if (nTail <= 150) tb += `<tr><td>${esc(g)}</td><td>${esc(c)}</td><td class="n">${fmt(v)}</td><td class="n">${pct(v / gt, 2)}</td></tr>`;
+    }
+  }
+  h += `<div class="card"><b>${t('o_tail')}</b>${t('n_choices', fmt(nTail))}` + table(th([t('group'), t('choice'), [t('picks')], [t('share')]]), tb) + '</div>';
+  // (c) topping route: as option vs standalone menu line
+  const tc = A('topping_route'), tr = rows('topping_route', {ch});
+  let rb = '';
+  const byT = group(tr, r => r[tc.topping] + '|' + r[tc.loc]);
+  const keys = [...byT.keys()].sort((x, y) => sum(byT.get(y), r => r[tc.opt_u] + r[tc.menu_u]) - sum(byT.get(x), r => r[tc.opt_u] + r[tc.menu_u]));
+  for (const k of keys) {
+    const x = byT.get(k), [tp, loc] = k.split('|');
+    const ou = sum(x, r => r[tc.opt_u]), ot = sum(x, r => r[tc.opt_thb]), mu = sum(x, r => r[tc.menu_u]), mt = sum(x, r => r[tc.menu_thb]);
+    const op = div(ot, ou), mp = div(mt, mu), gap = op != null && mp != null && op > 0 && mp > 0 ? op - mp : null;
+    rb += `<tr class="${gap != null && Math.abs(gap) > 5 ? 'warn' : ''}"><td>${esc(tp)}</td><td>${bn(loc)}</td><td class="n">${fmt(ou)}</td><td class="n">${op ? fmt(op) : '–'}</td><td class="n">${fmt(mu)}</td><td class="n">${mp ? fmt(mp) : '–'}</td><td class="n">${gap == null ? '–' : fmt(gap)}</td></tr>`;
+  }
+  h += '<div class="card"><b>' + t('o_route') + '</b><div class="note">' + t('o_route_note') + '</div>' +
+    table(th(['Sharing', t('branch'), [t('opt_units')], [t('thb_unit')], [t('menu_units')], [t('thb_unit')], [t('diff_thb')]]), rb) + '</div>';
+  // (d) option-by-dish drill
+  const d = A('option_by_dish'), dr = rows('option_by_dish', {ch});
+  const byDish = group(dr, r => r[d.dish]);
+  const dishes = [...byDish.entries()].map(([k, x]) => [k, sum(x, r => r[d.picks])]).sort((x, y) => y[1] - x[1]);
+  if (dishes.length && (!S.dish || !byDish.has(S.dish))) S.dish = dishes[0][0];
+  let db = '';
+  if (S.dish) for (const [g, x] of group(byDish.get(S.dish), r => r[d.group])) {
+    const gt = sum(x, r => r[d.picks]);
+    for (const [c, y] of [...group(x, r => r[d.choice])].sort((p, q) => sum(q[1], r => r[d.picks]) - sum(p[1], r => r[d.picks]))) {
+      const v = sum(y, r => r[d.picks]); db += `<tr><td>${esc(g)}</td><td>${esc(c)}</td><td class="n">${fmt(v)}</td><td>${barCell(v / gt, 1, pct(v / gt, 0))}</td></tr>`;
+    }
+  }
+  h += `<div class="card"><b>${t('o_dish')}</b> <select data-act="dish">` + dishes.map(([k, n]) => `<option value="${esc(k)}"${k === S.dish ? ' selected' : ''}>${esc(k)} (${fmt(n)})</option>`).join('') +
+    '</select><div class="note">' + t('o_dish_note') + '</div>' + table(th([t('group'), t('choice'), [t('picks')], t('share_grp')]), db) + '</div>';
+  return h;
+}
+function optionsGrab() {
+  const mc = A('grab.match_cov'), cr = rows('grab.match_cov'), o = A('grab.options'), rs = rows('grab.options');
+  if (!cr.length && !rs.length) return NO_GRAB;
+  const cov = div(sum(cr, r => r[mc.matched]), sum(cr, r => r[mc.orders]));
+  let h = `<div class="card"><b>${t('og_title', pct(cov, 0))}</b>`;
+  if (!rs.length) return h + '<div class="muted">' + t('og_none') + '</div></div>';
+  const byG = group(rs, r => r[o.group]);
+  const groups = [...byG.entries()].map(([g, x]) => [g, sum(x, r => r[o.picks])]).sort((x, y) => y[1] - x[1]);
+  if (!S.gOptGroup || !byG.has(S.gOptGroup)) S.gOptGroup = groups[0][0];
+  const gr = byG.get(S.gOptGroup), ids = selBranches().filter(id => gr.some(r => r[o.loc] === id));
+  const locTot = {}; for (const r of gr) locTot[r[o.loc]] = (locTot[r[o.loc]] || 0) + r[o.picks];
+  const gTot = sum(gr, r => r[o.picks]);
+  let b = '';
+  for (const [c, x] of [...group(gr, r => r[o.choice])].sort((p, q) => sum(q[1], r => r[o.picks]) - sum(p[1], r => r[o.picks]))) {
+    const tot = sum(x, r => r[o.picks]);
+    b += `<tr><td>${esc(c)}</td>` + ids.map(id => { const v = div(sum(x.filter(r => r[o.loc] === id), r => r[o.picks]), locTot[id]); return `<td>${barCell(v || 0, 1, pct(v, 0))}</td>`; }).join('') +
+      `<td class="n">${fmt(tot)}</td><td class="n">${pct(div(tot, gTot))}</td></tr>`;
+  }
+  h += ' <select data-act="goptg">' + groups.map(([g, n]) => `<option value="${esc(g)}"${g === S.gOptGroup ? ' selected' : ''}>${esc(g)} (${fmt(n)})</option>`).join('') + '</select>' +
+    '<h3>' + t('og_share') + '</h3>' + table(th([t('choice'), ...ids.map(bn), [t('picks_n')], [t('share_all')]]), b);
+  let tb = '', nTail = 0;
+  for (const [g, x] of byG) {
+    const gt = sum(x, r => r[o.picks]); if (gt < 50) continue;
+    for (const [c, y] of group(x, r => r[o.choice])) {
+      const v = sum(y, r => r[o.picks]); if (v / gt >= 0.02) continue;
+      nTail++; if (nTail <= 150) tb += `<tr><td>${esc(g)}</td><td>${esc(c)}</td><td class="n">${fmt(v)}</td><td class="n">${pct(v / gt, 2)}</td></tr>`;
+    }
+  }
+  return h + `<h3>${t('og_tail', fmt(nTail))}</h3>` + table(th([t('group'), t('choice'), [t('picks')], [t('share')]]), tb) + '</div>';
+}
+
+// ================================================================ 5. members
+function renderMembers() {
+  document.getElementById('members').innerHTML = '<h2>' + t('h_members') + '</h2>' + rangeNote() + dual(membersStore, () => '<div class="card muted">' + t('m_nograb') + '</div>');
+}
+function membersStore() {
+  const m = A('members.monthly'), rs = rows('members.monthly');
+  const months = [...new Set(rs.map(r => r[m.ym]))].sort();
+  let b = '';
+  for (const id of selBranches()) for (const ym of months) {
+    const x = rs.filter(r => r[m.loc] === id && r[m.ym] === ym); if (!x.length) continue;
+    const bills = sum(x, r => r[m.bills]), mb = sum(x, r => r[m.member_bills]);
+    b += `<tr><td>${bn(id)}</td><td>${ym}</td><td class="n">${fmt(bills)}</td><td class="n">${fmt(mb)}</td><td>${barCell(div(mb, bills) || 0, 0.25, pct(div(mb, bills)))}</td><td class="n">${fmt(sum(x, r => r[m.members]))}</td></tr>`;
+  }
+  let h = '<div class="card"><b>' + t('m_share') + '</b>' + monthNote + table(th([t('branch'), t('month'), [t('bills')], [t('member_bills')], t('m_bar'), [t('m_people')]]), b) + '</div>';
+  const w = A('members.winback'), wr = get('members.winback').filter(r => F.branches.has(r[w.loc])).sort((x, y) => y[w.days_since] - x[w.days_since]);
+  let wb = '';
+  for (const r of wr) wb += `<tr><td><code>${esc(String(r[w.key]).slice(0, 8))}</code></td><td>${bn(r[w.loc])}</td><td class="n">${fmt(r[w.visits])}</td><td>${r[w.last_date]}</td><td class="n">${fmt(r[w.days_since])}</td><td class="n">${fmt(r[w.avg_thb])}</td></tr>`;
+  h += `<div class="card"><b>${t('m_wb')}</b>${t('m_wb_n', wr.length)}` + (wr.length ? table(th([t('code'), t('last_branch'), [t('visits')], t('last'), [t('days_gone')], [t('avg_thb')]]), wb) : '<div class="muted">' + t('none') + '</div>') + '</div>';
+  return h;
+}
+
+// ================================================================ 6. menu & promo
+function renderMenu() {
+  document.getElementById('menu').innerHTML = '<h2>' + t('h_menu') + '</h2>' + rangeNote() + dual(menuStore, menuGrab);
+}
+function menuStore() {
+  const it = A('items'), rs = rows('items', {ch:STORE});
+  const cats = ['main', 'set', 'side', 'beverage', 'topping', 'dessert', 'other', 'all'];
+  const CATL = {main:t('c_main'), set:t('sets'), side:t('side'), beverage:t('grp_bev'), topping:t('sharing_long'), dessert:t('dessert'), other:t('other'), all:t('all')};
+  const sel = S.menuCat === 'all' ? rs : rs.filter(r => r[it.cat] === S.menuCat);
+  const agg = [...group(sel, r => r[it.item]).entries()].map(([k, x]) => ({item:k, units:sum(x, r => r[it.units]), thb:sum(x, r => r[it.thb])}))
+    .filter(x => x.units > 0).sort((x, y) => y.units - x.units);
+  agg.forEach(x => x.price = x.thb / x.units);
+  const med = arr => { const s = arr.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+  const mu = med(agg.map(x => x.units)), mp = med(agg.map(x => x.price));
+  const n = agg.length;
+  let b = '';
+  agg.forEach((x, i) => {
+    const q = 4 - Math.floor(i / Math.max(1, n) * 4);                 // Q4 = most popular quarter
+    const hiP = x.units >= mu, hiPr = x.price >= mp;
+    const cls = hiP && hiPr ? [t('star'), 'ok'] : hiP ? [t('plow'), ''] : hiPr ? [t('puzzle'), 'warn'] : [t('dog'), 'bad'];
+    b += `<tr class="click${S.item === x.item ? ' sel' : ''}" data-act="item" data-k="${esc(x.item)}"><td>${esc(x.item)}</td><td class="n">${fmt(x.units)}</td><td class="n">${fmt(x.thb)}</td><td class="n">${fmt(x.price)}</td><td class="n">Q${q}</td><td><span class="tag ${cls[1]}">${cls[0]}</span></td><td class="muted">${t('wait_cost')}</td></tr>`;
+  });
+  let h = '<div class="card"><b>' + t('mm_title') + '</b> <span class="seg">' +
+    cats.map(c => `<button data-act="mcat" data-k="${c}" class="${S.menuCat === c ? 'on' : ''}">${CATL[c]}</button>`).join('') +
+    `</span><div class="note">${t('mm_note', fmt(mu), fmt(mp))}</div>` +
+    '<div style="max-height:420px;overflow:auto">' + table(th([t('menu'), [t('units')], ['฿'], [t('price_unit')], [t('pop_q')], t('group'), t('profit')]), b) + '</div></div>';
+  if (S.item) h += menuDrill(S.item);
+  // (c) sets vs a-la-carte mains per month
+  const st = A('sets'), sr = rows('sets', {ch:STORE});
+  // a-la-carte mains = tree main units (whole month). Sets are their own category
+  // ('set', Point 2026-10-07) and were never inside tree main, so nothing is subtracted.
+  const tr = A('tree'), mainsByYm = {};
+  for (const r of rows('tree', {ch:STORE, allDates:true})) { const ym = r[tr.d].slice(0, 7); mainsByYm[ym] = (mainsByYm[ym] || 0) + r[tr.main]; }
+  let sb = '';
+  for (const [k, x] of [...group(sr, r => r[st.ym] + '|' + r[st.name])].sort()) {
+    const [ym, name] = k.split('|'), u = sum(x, r => r[st.units]);
+    sb += `<tr><td>${ym}</td><td>${esc(name)}</td><td class="n">${fmt(u)}</td><td class="n">${fmt(sum(x, r => r[st.thb]))}</td><td class="n">${fmt(mainsByYm[ym])}</td><td class="n">${pct(div(u, mainsByYm[ym]))}</td></tr>`;
+  }
+  h += setAttachCard();
+  h += '<div class="card"><b>' + t('mset_title') + '</b><div class="note">' + t('mset_note') + '</div>' + table(th([t('month'), t('sets'), [t('set_units')], ['฿'], [t('alc')], [t('set_div')]]), sb) + '</div>';
+  // (d) promo
+  const p = A('promo'), pr = rows('promo', {ch:STORE});
+  let pb = '';
+  for (const [k, x] of group(pr, r => r[p.promo])) {
+    const bills = sum(x, r => r[p.bills]), main = sum(x, r => r[p.main]), net = sum(x, r => r[p.net]);
+    pb += `<tr><td>${esc(k)}</td><td class="n">${fmt(bills)}</td><td class="n">${fmt(div(main, bills), 2)}</td><td class="n">${fmt(net)}</td><td class="n">${fmt(div(net, bills))}</td></tr>`;
+  }
+  h += '<div class="card"><b>' + t('promo_title') + '</b>' + table(th([t('promo'), [t('bills')], [t('main_bill')], [t('net')], [t('thb_bill')]]), pb) + '</div>';
+  // (e) combo simulator from pairs
+  const pa = A('pairs'), prs = get('pairs').filter(r => F.branches.has(r[pa.loc]));
+  const names = [...new Set(prs.flatMap(r => [r[pa.a], r[pa.b]]))].sort();
+  const pick = S.combo.filter(Boolean);
+  let cb = '';
+  for (let i = 0; i < pick.length; i++) for (let j = i + 1; j < pick.length; j++) {
+    const [x, y] = [pick[i], pick[j]];
+    for (const r of prs.filter(r => (r[pa.a] === x && r[pa.b] === y) || (r[pa.a] === y && r[pa.b] === x))) {
+      const nx = r[pa.a] === x ? r[pa.na] : r[pa.nb], ny = r[pa.a] === x ? r[pa.nb] : r[pa.na];
+      cb += `<tr><td>${esc(x)} + ${esc(y)}</td><td>${bn(r[pa.loc])}</td><td class="n">${fmt(r[pa.ab])}</td><td class="n">${fmt(nx)}</td><td class="n">${fmt(r[pa.lift], 2)}</td><td class="n">${pct(div(r[pa.ab], nx))}</td><td class="n">${pct(div(r[pa.ab], ny))}</td></tr>`;
+    }
+  }
+  h += '<div class="card"><b>' + t('combo_title') + '</b>' + t('combo_pick') + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">' +
+    [0, 1, 2].map(i => `<select data-act="combo" data-k="${i}"><option value="">${t('combo_opt', i + 1)}</option>` + names.map(nm => `<option${nm === S.combo[i] ? ' selected' : ''}>${esc(nm)}</option>`).join('') + '</select>').join('') + '</div>' +
+    (pick.length < 2 ? '<div class="muted">' + t('combo_min') + '</div>' : cb ? table(th([t('pair'), t('branch'), [t('both_bills')], [t('first_bills')], ['lift'], [t('take_first')], [t('take_second')]]), cb) : '<div class="muted">' + t('combo_none') + '</div>') +
+    '<div class="note">' + t('combo_note') + '</div></div>';
+  return h;
+}
+// does the set lift attach? per branch x month: drink / side attach with vs without the
+// ในเซต layer (picks forced inside a set), denominator = main + set (date range + day type apply)
+function setAttachCard() {
+  const tc = A('tree'), rs = rows('tree', {ch:STORE});
+  let b = '';
+  for (const id of selBranches()) {
+    const byM = group(rs.filter(r => r[tc.loc] === id), r => r[tc.d].slice(0, 7));
+    for (const ym of [...byM.keys()].sort()) {
+      const s = treeAgg(byM.get(ym)), o = occ(s);
+      const cell = k => { const a = div(layer(s, k, 'all'), o), u = div(layer(s, k, 'upsell'), o);
+        return `<td class="n">${pct(a)}</td><td class="n">${pct(u)}</td><td class="n ${a - u > 0.005 ? 'pos' : ''}">${a == null ? '–' : '+' + ((a - u) * 100).toFixed(1) + ' pt'}</td>`; };
+      b += `<tr><td>${bn(id)}</td><td>${ym}</td><td class="n">${fmt(o)}</td><td class="n">${pct(div(s.set, o))}</td>${cell('bev')}${cell('side')}</tr>`;
+    }
+  }
+  return '<div class="card"><b>' + t('sa_title') + '</b><div class="note">' + t('sa_note') + '</div>' +
+    table(th([t('branch'), t('month'), [t('mains')], [t('set_pct')], [t('sa_bev_all')], [t('sa_bev_up')], [t('sa_lift')], [t('sa_side_all')], [t('sa_side_up')], [t('sa_lift')]]), b) + '</div>';
+}
+function menuDrill(item) {
+  const it = A('items');
+  const all = get('items').filter(r => r[it.item] === item && F.branches.has(r[it.loc]) && STORE.includes(r[it.channel]));
+  const end = D.data_through, start = addDays(end, -89), byD = {};
+  for (const r of all) if (r[it.d] >= start && r[it.d] <= end) byD[r[it.d]] = (byD[r[it.d]] || 0) + r[it.units];
+  const days = []; for (let d = start; d <= end; d = addDays(d, 1)) days.push(d);
+  const mx = Math.max(1, ...Object.values(byD));
+  const bars = days.map(d => `<div title="${d}: ${fmt(byD[d] || 0)}" style="height:${(byD[d] || 0) / mx * 100}%"></div>`).join('');
+  const inR = all.filter(r => dayOK(r[it.d])), tot = sum(inR, r => r[it.units]);
+  const chs = STORE.map(c => [c, sum(inR.filter(r => r[it.channel] === c), r => r[it.units])]);
+  // route split (2026-10-07): the same item sold as a menu line / a paid option / a set pick
+  const SRC = [['menu', t('menu')], ['option', t('src_opt')], ['set', t('in_set')]];
+  const srcs = SRC.map(([k, l]) => [l, sum(inR.filter(r => (r[it.src] || 'menu') === k), r => r[it.units]),
+    sum(inR.filter(r => (r[it.src] || 'menu') === k), r => r[it.thb])]);
+  const d = A('option_by_dish'), od = rows('option_by_dish', {ch:STORE}).filter(r => r[d.dish] === item);
+  let ob = '';
+  for (const [g, x] of group(od, r => r[d.group])) {
+    const gt = sum(x, r => r[d.picks]);
+    for (const [c, y] of group(x, r => r[d.choice])) { const v = sum(y, r => r[d.picks]); ob += `<tr><td>${esc(g)}</td><td>${esc(c)}</td><td>${barCell(v / gt, 1, pct(v / gt, 0))}</td></tr>`; }
+  }
+  const pa = A('pairs'), pp = get('pairs').filter(r => F.branches.has(r[pa.loc]) && (r[pa.a] === item || r[pa.b] === item)).sort((x, y) => y[pa.lift] - x[pa.lift]).slice(0, 10);
+  const pb = pp.map(r => `<tr><td>${esc(r[pa.a] === item ? r[pa.b] : r[pa.a])}</td><td>${bn(r[pa.loc])}</td><td class="n">${fmt(r[pa.ab])}</td><td class="n">${fmt(r[pa.lift], 2)}</td></tr>`).join('');
+  return `<div class="card"><b>${t('drill', esc(item))}</b> <button class="btn" data-act="item" data-k="">${t('close')}</button>` +
+    `<div class="note">${t('drill_note', start, end, fmt(mx))}</div><div class="mini">${bars}</div>` +
+    `<h3>${t('drill_route', fmt(tot))}</h3>` + table(th([t('route'), [t('units')], t('share'), ['฿']]),
+      srcs.map(([l, u, b]) => `<tr><td>${l}</td><td class="n">${fmt(u)}</td><td>${barCell(div(u, tot) || 0, 1, pct(div(u, tot), 0))}</td><td class="n">${fmt(b)}</td></tr>`).join('')) +
+    '<div class="note">' + t('drill_route_note') + '</div>' +
+    `<h3>${t('drill_ch', fmt(tot))}</h3><table><tbody>${chs.map(([c, v]) => `<tr><td>${CH[c]}</td><td>${barCell(div(v, tot) || 0, 1, pct(div(v, tot), 0))}</td></tr>`).join('')}</tbody></table>` +
+    '<div class="split"><div><h3>' + t('drill_opts') + '</h3>' + (ob ? table(th([t('group'), t('choice'), t('share')]), ob) : '<div class="muted">' + t('no_opts') + '</div>') + '</div>' +
+    '<div><h3>' + t('often_with') + '</h3>' + (pb ? table(th([t('menu'), t('branch'), [t('pair_bills')], ['lift']]), pb) : '<div class="muted">' + t('no_pairs') + '</div>') + '</div></div></div>';
+}
+function menuGrab() {
+  const m = A('grab.menu'), mr = rows('grab.menu');
+  if (!mr.length) return NO_GRAB;
+  const tu = sum(mr, r => r[m.units]);
+  const top = [...group(mr, r => r[m.item])].map(([k, x]) => [k, sum(x, r => r[m.units]), sum(x, r => r[m.thb])]).sort((x, y) => y[1] - x[1]).slice(0, 25);
+  let h = '<div class="card"><b>' + t('mg_top') + '</b>' + table(th([t('menu'), [t('units')], ['฿'], [t('thb_unit')], t('share')]),
+    top.map(([k, u, t]) => `<tr><td>${esc(k)}</td><td class="n">${fmt(u)}</td><td class="n">${fmt(t)}</td><td class="n">${fmt(div(t, u))}</td><td>${barCell(u / tu, top[0][1] / tu, pct(u / tu))}</td></tr>`).join('')) + '</div>';
+  const c = A('grab.combos'), cr = get('grab.combos').filter(r => F.branches.has(r[c.loc])).sort((x, y) => y[c.n] - x[c.n]).slice(0, 15);
+  h += '<div class="card"><b>' + t('mg_combo') + '</b>' + table(th([t('combo'), t('branch'), [t('visits')], t('as_of')]),
+    cr.map(r => `<tr><td>${esc(r[c.combo])}</td><td>${bn(r[c.loc])}</td><td class="n">${fmt(r[c.n])}</td><td>${r[c.as_of]}</td></tr>`).join('')) + '</div>';
+  h += '<div class="card"><b>' + t('mg_camp') + '</b>' + offersTable(rows('grab.offers')) + '</div>';
+  return h;
+}
+function offersTable(or) {
+  const o = A('grab.offers');
+  const camp = [...group(or, r => r[o.campaign])].map(([k, x]) => ({k, spend:sum(x, r => r[o.spend]), orders:sum(x, r => r[o.orders]), net:sum(x, r => r[o.net]), gross:sum(x, r => r[o.gross])})).sort((x, y) => y.spend - x.spend);
+  return table(th([t('campaign'), [t('store_paid')], [t('orders')], [t('camp_per_order')], [t('net')], [t('net_per_camp')]]),
+    camp.map(x => `<tr><td>${esc(x.k)}</td><td class="n">${fmt(x.spend)}</td><td class="n">${fmt(x.orders)}</td><td class="n">${fmt(div(x.spend, x.orders), 1)}</td><td class="n">${fmt(x.net)}</td><td class="n">${fmt(div(x.net, x.spend), 1)}×</td></tr>`).join(''));
+}
+
+// ================================================================ 7. insights
+function renderInsights() {
+  document.getElementById('insights').innerHTML = '<h2>7 · Insights</h2><div class="note"><b>' + t('i_note') + '</b></div>' + rangeNote() + insightsBody();
+}
+function insightsBody() {
+  let h = '';
+  // (a) top pairs per branch
+  const pa = A('pairs'), prs = get('pairs').filter(r => F.branches.has(r[pa.loc]) && r[pa.ab] >= 10);
+  let pb = '';
+  for (const id of selBranches()) prs.filter(r => r[pa.loc] === id).sort((x, y) => y[pa.lift] - x[pa.lift]).slice(0, 5)
+    .forEach(r => { pb += `<tr><td>${bn(id)}</td><td>${esc(r[pa.a])}</td><td>${esc(r[pa.b])}</td><td class="n">${fmt(r[pa.ab])}</td><td class="n">${pct(div(r[pa.ab], r[pa.n]))}</td><td class="n">${fmt(r[pa.lift], 2)}</td></tr>`; });
+  h += '<div class="card"><b>' + t('i_pairs') + '</b>' + table(th([t('branch'), t('menu_a'), t('menu_b'), [t('pair_bills')], [t('pct_bills')], ['lift']]), pb) + '</div>';
+  // (b) calendar effects, % vs each branch's mean day
+  const c = A('calendar'), cr = rows('calendar', {ch:STORE});
+  const cols = [[t('store_total'), calDays(cr)], ...STORE.map(ch => [CH[ch], calDays(cr.filter(r => r[c.channel] === ch))])];
+  if (F.channel !== 'store') {
+    const rain = new Map(get('calendar').map(r => [r[c.loc] + '|' + r[c.d], r[c.rain]]));
+    const g = A('grab.daily');
+    cols.push(['Grab', rows('grab.daily').map(r => ({loc:r[g.loc], d:r[g.d], net:r[g.net], dow:dowOf(r[g.d]), dom:+r[g.d].slice(8), hol:HOL.has(r[g.d]), rain:rain.get(r[g.loc] + '|' + r[g.d])}))]);
+  }
+  const buckets = [...[1, 2, 3, 4, 5, 6, 0].map(w => [t('b_dow', DOW[w]), x => x.dow === w]),
+    [t('dom1'), x => x.dom <= 7], [t('dom2'), x => x.dom >= 8 && x.dom <= 14], [t('dom3'), x => x.dom >= 15 && x.dom <= 21], [t('dom4'), x => x.dom >= 22],
+    [t('holiday'), x => x.hol], [t('non_hol'), x => !x.hol], [t('rain1'), x => x.rain >= 1], [t('no_rain'), x => x.rain != null && x.rain < 1]];
+  const eff = days => {
+    const mean = {}; for (const [id, x] of group(days, r => r.loc)) mean[id] = sum(x, r => r.net) / x.length;
+    return buckets.map(([, f]) => { const x = days.filter(f).filter(r => mean[r.loc] > 0); return x.length ? [sum(x, r => r.net / mean[r.loc] - 1) / x.length, x.length] : [null, 0]; });
+  };
+  const res = cols.map(([, days]) => eff(days));
+  let eb = '';
+  buckets.forEach(([l], i) => { eb += `<tr><td>${l}</td>` + res.map(r => { const [v, n] = r[i]; return `<td class="n ${v == null ? '' : v < -0.05 ? 'neg' : v > 0.05 ? 'pos' : ''}" title="${t('n_days', n)}">${sgn(v)}</td>`; }).join('') + '</tr>'; });
+  h += '<div class="card"><b>' + t('i_cal') + '</b>' + table(th([t('day_group'), ...cols.map(x => [x[0]])]), eb) + '</div>';
+  // (c) attach by context: party bucket x daypart (party) + attach by daypart (tree)
+  const p = A('party'), pr = rows('party', {ch:STORE});
+  const PB = ['1', '2', '3-4', '5+', 'n/a'];
+  let pbody = '';
+  for (const dp of DP_ORDER) for (const k of PB) {
+    const x = pr.filter(r => r[p.daypart] === dp && r[p.bucket] === k); if (!x.length) continue;
+    const bills = sum(x, r => r[p.bills]), net = sum(x, r => r[p.net]), main = sum(x, r => r[p.main]);
+    pbody += `<tr><td>${DP[dp]}</td><td>${k === 'n/a' ? t('unspecified') : t('n_pax', k)}</td><td class="n">${fmt(bills)}</td><td class="n">${fmt(div(main, bills), 2)}</td><td class="n">${fmt(div(net, bills))}</td><td class="n">${fmt(div(net, main))}</td></tr>`;
+  }
+  const tc = A('tree'), tr = rows('tree', {ch:STORE});
+  let tb = '';
+  for (const dp of DP_ORDER) { const s = treeAgg(tr.filter(r => r[tc.daypart] === dp)); tb += `<tr><td>${DP[dp]}</td><td class="n">${fmt(occ(s))}</td>` + ATT.map(([k]) => `<td class="n">${pct(div(s[k], occ(s)))}</td>`).join('') + '</tr>'; }
+  h += '<div class="card"><b>' + t('i_ctx') + '</b>' + monthNote + table(th([t('daypart'), t('party_size'), [t('bills')], [t('main_bill')], [t('thb_bill')], [t('thb_main')]]), pbody) +
+    '<h3>' + t('i_att_dp') + '</h3>' + table(th([t('daypart'), [t('main_plus_set')], ...ATT.map(x => [x[1]])]), tb) + '</div>';
+  return h;
+}
+
+// ================================================================ 8. weekly digest
+function renderWeekly() {
+  const o = A('opportunity');
+  const op = get('opportunity').filter(r => F.branches.has(r[o.loc])).sort((x, y) => (y[o.uplift] || 0) - (x[o.uplift] || 0)).slice(0, 3);
+  const end = D.data_through, start = addDays(end, -6);
+  const c = A('calendar');
+  const days = calDays(get('calendar').filter(r => F.branches.has(r[c.loc]) && STORE.includes(r[c.channel]) && r[c.d] >= start && r[c.d] <= end))
+    .filter(x => x.gap != null).sort((x, y) => x.gap - y.gap).slice(0, 3);
+  let m = t('w_head', start, end);
+  op.forEach((r, i) => { m += t('w_opp', i + 1, bnRaw(r[o.loc]), CH[r[o.channel]] || r[o.channel], LEVER[r[o.lever]] || r[o.lever], pct(r[o.rate]), pct(r[o.best_rate]), bnRaw(r[o.best_loc]), fmt(r[o.uplift])); });
+  m += t('w_low');
+  if (!days.length) m += t('w_noexp');
+  days.forEach((x, i) => { m += t('w_day', i + 1, bnRaw(x.loc), x.d, DOW[dowOf(x.d)], fmt(x.netE), fmt(x.exp), sgn(x.gap), (x.hol ? ' 🎌' : '') + (x.rain >= 1 ? ' 🌧' : '')); });
+  m += t('w_link');
+  document.getElementById('weekly').innerHTML = '<h2>' + t('h_weekly') + '</h2><div class="note">' + t('w_note') + '</div>' +
+    `<div class="card"><button class="btn" data-act="copy">${t('copy_btn')}</button> <span id="copied" class="muted"></span><pre class="msg" id="msg">${esc(m)}</pre></div>`;
+}
+
+// ================================================================ 9. Grab
+function renderGrab() {
+  const months = (D.grab && D.grab.months) || [];
+  if (!months.length) { document.getElementById('grab').innerHTML = '<h2>9 · Grab</h2>' + NO_GRAB; return; }
+  if (!S.gmonth || !months.includes(S.gmonth)) S.gmonth = months[months.length - 1];
+  const M = S.gmonth;
+  const gr = feed => { const a = A(feed); return get(feed).filter(r => (a.loc === undefined || F.branches.has(r[a.loc])) && (a.d !== undefined ? r[a.d].startsWith(M) : a.ym !== undefined ? r[a.ym] === M : true)); };
+  let h = '<h2>9 · Grab</h2><div class="note">' + t('g_month') + '<select data-act="gmonth">' + months.map(x => `<option${x === M ? ' selected' : ''}>${esc(x)}</option>`).join('') +
+    '</select>' + t('g_note') + '</div>';
+  // 9.1 profit per order waterfall: payment rows (grab.orders) + ads / adjustment rows (grab.fees)
+  const o = A('grab.orders'), or = gr('grab.orders'), fe = A('grab.fees'), fr = gr('grab.fees');
+  const W = [['gross', t('sales')], ['disc', t('store_disc')], ['comm', t('comm')], ['mkt', t('mkt')], ['ads', t('ads')], ['adj', t('adj')], ['kept', t('payout')]];
+  let wb = '';
+  const wrow = (label, x, f, cls) => {
+    const n = x.length, s = k => sum(x, r => r[o[k]]);
+    const v = {gross:s('gross'), disc:s('disc'), comm:s('comm'), mkt:s('mkt'), ads:sum(f, r => r[fe.ads_thb]), adj:sum(f, r => r[fe.adjust_thb])};
+    v.kept = s('payout') + v.ads + v.adj;   // signs as stored: ads / adjustments are negative
+    return `<tr class="${cls}"><td>${label}</td><td class="n">${fmt(n)}</td>` + W.map(([k]) => `<td class="n">${fmt(div(v[k], n), 1)}</td>`).join('') +
+      `<td class="n"><b>${pct(div(v.kept, v.gross))}</b></td><td class="muted">${t('wait_cost')}</td><td class="n muted">–</td><td class="n">${fmt(v.kept)}</td></tr>`;
+  };
+  for (const id of selBranches()) { const x = or.filter(r => r[o.loc] === id), f = fr.filter(r => r[fe.loc] === id); if (x.length || f.length) wb += wrow(bn(id), x, f, ''); }
+  if (or.length) wb += wrow(t('total'), or, fr, 'tot');
+  const unpaid = sum(fr, r => r[fe.unpaid_rows]);
+  h += '<div class="card"><b>' + t('g91') + '</b><div class="note">' + t('g91_note') + '</div>' +
+    (or.length ? table(th([t('branch'), [t('orders')], ...W.map(x => [x[1]]), [t('pct_kept')], t('food_cost'), [t('profit_order')], [t('payout_tot')]]), wb) : '<div class="muted">' + t('nodata_short') + '</div>') +
+    (unpaid > 0 ? `<div class="note">${t('g_unpaid', fmt(unpaid))}</div>` : '') + '</div>';
+  // 9.2 ads
+  const k = A('grab.keywords'), kr = gr('grab.keywords');
+  let kb = '';
+  for (const [lab, f] of [[t('kw_brand'), r => r[k.brand]], [t('kw_generic'), r => !r[k.brand]]]) {
+    const x = kr.filter(f), sp = sum(x, r => r[k.spend]), od = sum(x, r => r[k.orders]);
+    kb += `<tr><td>${lab}</td><td class="n">${fmt(sum(x, r => r[k.impr]))}</td><td class="n">${fmt(sum(x, r => r[k.clicks]))}</td><td class="n">${fmt(sp)}</td><td class="n">${fmt(od)}</td><td class="n">${fmt(div(sp, od), 1)}</td><td class="n">${fmt(div(od * 100, sp), 2)}</td><td class="n">${fmt(sum(x, r => r[k.sales]))}</td></tr>`;
+  }
+  const ad = A('grab.ads'), ar = gr('grab.ads'), as = c => sum(ar, r => r[ad[c]]);
+  const fun = [['impr', t('f_impr')], ['visits', t('f_visit')], ['cart', t('f_cart')], ['orders', t('f_order')]];
+  const f0 = as('impr');
+  const fb = fun.map(([c, l], i) => `<tr><td>${l}</td><td class="n">${fmt(as(c))}</td><td>${barCell(as(c), f0, i ? t('from_prev', pct(div(as(c), as(fun[i - 1][0])), 1)) : '100%')}</td></tr>`).join('');
+  const p = A('grab.peak'), pr = gr('grab.peak');
+  const hours = [...new Set([...ar.map(r => r[ad.hour]), ...pr.filter(r => r[p.orders] > 0).map(r => r[p.hour])])].sort((x, y) => x - y);
+  const hs = hours.map(x => [x, sum(ar.filter(r => r[ad.hour] === x), r => r[ad.spend]), sum(ar.filter(r => r[ad.hour] === x), r => r[ad.orders]), sum(pr.filter(r => r[p.hour] === x), r => r[p.orders])]).filter(x => x[1] || x[2] || x[3]);
+  const ms = Math.max(1, ...hs.map(x => x[1])), mo = Math.max(1, ...hs.map(x => x[3]));
+  h += '<div class="card"><b>' + t('g92') + '</b><div class="note">' + t('g92_note') + '</div>' +
+    table(th([t('kw_group'), [t('impr')], [t('clicks')], [t('ad_spend')], [t('orders')], [t('thb_order')], [t('orders_100')], [t('sales_thb')]]), kb) +
+    '<div class="split"><div><h3>Funnel</h3>' + table(th([t('step'), [t('count')], t('rate')]), fb) + '</div>' +
+    '<div><h3>' + t('ad_hour') + '</h3>' + table(th([t('hr'), t('ad_spend'), [t('ad_orders')], t('all_orders_sel')]),
+      hs.map(([x, s, ao, po]) => `<tr><td>${x}:00</td><td>${barCell(s, ms, fmt(s), true)}</td><td class="n">${fmt(ao)}</td><td>${barCell(po, mo, fmt(po))}</td></tr>`).join('')) + '</div></div></div>';
+  // 9.3 promotions
+  const of = A('grab.offers'), ofr = gr('grab.offers'), g = A('grab.daily'), gd = gr('grab.daily');
+  const campDays = new Set(ofr.filter(r => r[of.spend] > 0 || r[of.orders] > 0).map(r => r[of.loc] + '|' + r[of.d]));
+  let cdb = '';
+  for (const id of selBranches()) {
+    const x = gd.filter(r => r[g.loc] === id); if (!x.length) continue;
+    const on = x.filter(r => campDays.has(id + '|' + r[g.d])), off = x.filter(r => !campDays.has(id + '|' + r[g.d]));
+    const ao = div(sum(on, r => r[g.orders]), on.length), af = div(sum(off, r => r[g.orders]), off.length);
+    cdb += `<tr><td>${bn(id)}</td><td class="n">${on.length}</td><td class="n">${fmt(ao, 1)}</td><td class="n">${off.length}</td><td class="n">${fmt(af, 1)}</td><td class="n">${ao != null && af ? sgn(ao / af - 1) : '–'}</td></tr>`;
+  }
+  h += '<div class="card"><b>' + t('g93') + '</b>' + offersTable(ofr) + '<h3>' + t('g93_days') + '</h3>' +
+    table(th([t('branch'), [t('camp_days')], [t('orders_day')], [t('no_camp_days')], [t('orders_day')], [t('diff')]]), cdb) + '</div>';
+  // 9.4 lost orders: cancelled Grab orders (category 'other', status ยกเลิก) from grab.cancels;
+  // ฿ lost is an estimate = branch-month average order value (grab.daily gross / orders)
+  const cn = A('grab.cancels'), lost = gr('grab.cancels');
+  const est = x => sum(x, r => r[cn.est_thb]);
+  let lb = '';
+  if (lost.length) {
+    const tbl = (head, m) => table(th([head, [t('orders')], [t('lost_thb')]]), m.map(([k, x]) => `<tr><td>${k}</td><td class="n">${x.length}</td><td class="n">${fmt(est(x))}</td></tr>`).join(''));
+    const byReason = [...group(lost, r => r[cn.reason] || t('unspecified'))].sort((x, y) => y[1].length - x[1].length).map(([k, x]) => [esc(k), x]);
+    const byWho = [...group(lost, r => r[cn.cancelled_by] || t('unspecified'))].sort((x, y) => y[1].length - x[1].length).map(([k, x]) => [esc(k), x]);
+    const byHour = [...group(lost, r => r[cn.hr])].sort((x, y) => x[0] - y[0]).map(([k, x]) => [k == null ? '–' : k + ':00', x]);
+    lb = '<div class="split"><div><h3>' + t('by_reason') + '</h3>' + tbl(t('reason'), byReason) + '<h3>' + t('cancelled_by') + '</h3>' + tbl(t('canceller'), byWho) +
+      '</div><div><h3>' + t('by_hour') + '</h3>' + tbl(t('hr'), byHour) + '</div></div>';
+  } else lb = '<div class="muted">' + t('no_cancel') + '</div>';
+  h += `<div class="card"><b>${t('g94')}</b>${t('g94_sum', fmt(lost.length), fmt(est(lost)))}<div class="note">${t('g94_note')}</div>${lb}</div>`;
+  // 9.5 ranking risk
+  const rv = A('grab.reviews'), allR = get('grab.reviews').filter(r => F.branches.has(r[rv.loc]));
+  const allD = get('grab.daily').filter(r => F.branches.has(r[g.loc]));
+  const yms = [...new Set([...allR.map(r => r[rv.d].slice(0, 7)), ...allD.map(r => r[g.d].slice(0, 7))])].sort();
+  let rb = '';
+  for (const ym of yms) {
+    const dr = allD.filter(r => r[g.d].startsWith(ym) && r[g.rating] != null), rr = allR.filter(r => r[rv.d].startsWith(ym));
+    rb += `<tr><td>${ym}</td><td class="n">${fmt(div(sum(dr, r => r[g.rating]), dr.length), 2)}</td><td class="n">${rr.length}</td><td class="n">${fmt(div(sum(rr, r => r[rv.rating]), rr.length), 2)}</td><td class="n">${rr.filter(r => !r[rv.replied]).length}</td></tr>`;
+  }
+  const un = allR.filter(r => !r[rv.replied]).sort((x, y) => y[rv.d].localeCompare(x[rv.d]));
+  const mw = A('grab.miwi'), mwr = gr('grab.miwi');
+  let mb = '';
+  for (const id of selBranches()) {
+    const x = mwr.filter(r => r[mw.loc] === id); if (!x.length) continue;
+    const bad = sum(x, r => r[mw.wrong] + r[mw.missing]), done = sum(x, r => r[mw.completed]), rate = div(bad, done);
+    mb += `<tr class="${rate > 0.01 ? 'bad' : ''}"><td>${bn(id)}</td><td class="n">${fmt(sum(x, r => r[mw.wrong]))}</td><td class="n">${fmt(sum(x, r => r[mw.missing]))}</td><td class="n">${fmt(sum(x, r => r[mw.reported]))}</td><td class="n">${fmt(done)}</td><td class="n">${pct(rate, 2)}${rate > 0.01 ? t('over1') : ''}</td></tr>`;
+  }
+  h += '<div class="card"><b>' + t('g95') + '</b><div class="split"><div><h3>' + t('monthly_score') + '</h3>' + table(th([t('month'), [t('avg_rating_daily')], [t('reviews')], [t('avg_stars')], [t('unreplied')]]), rb) +
+    `</div><div><h3>${t('miwi', M)}</h3>` + table(th([t('branch'), [t('wrong')], [t('missing')], [t('reported')], [t('completed')], [t('rate')]]), mb) + '</div></div>' +
+    `<h3>${t('unrep_title', un.length)}</h3>` + table(th([t('date'), t('branch'), [t('stars')], t('text')]),
+      un.map(r => `<tr class="${r[rv.rating] <= 3 ? 'warn' : ''}"><td style="white-space:nowrap">${r[rv.d]}</td><td>${bn(r[rv.loc])}</td><td class="n">${'★'.repeat(r[rv.rating] || 0)}</td><td>${esc(r[rv.text]) || '<span class="muted">' + t('no_text') + '</span>'}</td></tr>`).join('')) + '</div>';
+  // 9.6 Grab vs store, same month
+  const a = A('hourly'), hr = get('hourly').filter(r => F.branches.has(r[a.loc]) && r[a.d].startsWith(M) && STORE.includes(r[a.channel]));
+  const H = [...new Set([...pr.filter(r => r[p.orders] > 0).map(r => r[p.hour]), ...hr.map(r => r[a.hour])])].sort((x, y) => x - y);
+  const gt = sum(pr, r => r[p.orders]), stt = sum(hr, r => r[a.orders]);
+  const hv = H.map(x => [x, div(sum(pr.filter(r => r[p.hour] === x), r => r[p.orders]), gt) || 0, div(sum(hr.filter(r => r[a.hour] === x), r => r[a.orders]), stt) || 0]);
+  const hm = Math.max(0.01, ...hv.flatMap(x => [x[1], x[2]]));
+  const mn = A('grab.menu'), mnr = gr('grab.menu'), it = A('items'), itr = get('items').filter(r => F.branches.has(r[it.loc]) && r[it.d].startsWith(M) && STORE.includes(r[it.channel]));
+  const topG = [...group(mnr, r => r[mn.item])].map(([n, x]) => [n, sum(x, r => r[mn.units])]).sort((x, y) => y[1] - x[1]).slice(0, 10);
+  const topS = [...group(itr, r => r[it.item])].map(([n, x]) => [n, sum(x, r => r[it.units])]).sort((x, y) => y[1] - x[1]).slice(0, 10);
+  const kk = A('grab.basket'), bk = gr('grab.basket'), bm = sum(bk, r => r[kk.mains] + (+r[kk.sets] || 0));
+  const tc = A('tree'), ts = treeAgg(get('tree').filter(r => F.branches.has(r[tc.loc]) && r[tc.d].startsWith(M) && STORE.includes(r[tc.channel])));
+  const GL = [['sides', 'side', t('side')], ['bev_paid', 'bev_p', t('bev_paid')], ['bev_prem', 'bev_pr', t('premium')], ['dessert', 'des', t('dessert')], ['topping', 'top', t('sharing_long')]];
+  const ab = GL.map(([gk, sk, l]) => { const allNull = bk.every(r => r[kk[gk]] == null), gv = allNull ? null : div(sum(bk, r => r[kk[gk]]), bm), sv = div(ts[sk], occ(ts));
+    return `<tr><td>${l}</td><td class="n">${pct(gv)}</td><td class="n">${pct(sv)}</td><td class="n ${gv != null && sv != null && gv < sv ? 'neg' : ''}">${gv == null || sv == null ? '–' : ((gv - sv) * 100).toFixed(1) + ' pt'}</td></tr>`; }).join('');
+  const mc = A('grab.match_cov'), mcr = get('grab.match_cov').filter(r => F.branches.has(r[mc.loc])).sort((x, y) => x[mc.ym].localeCompare(y[mc.ym]) || x[mc.loc].localeCompare(y[mc.loc]));
+  h += `<div class="card"><b>${t('g96', M)}</b><div class="split"><div><h3>${t('order_share_hr')}</h3>` +
+    table(th([t('hr'), 'Grab', t('store')]), hv.map(([x, gv, sv]) => `<tr><td>${x}:00</td><td>${barCell(gv, hm, pct(gv), true)}</td><td>${barCell(sv, hm, pct(sv))}</td></tr>`).join('')) +
+    '</div><div><h3>' + t('att_occ') + '</h3>' + table(th([t('lever'), [t('grab_matched')], [t('store')], [t('gap')]]), ab) +
+    '<h3>' + t('top10') + '</h3>' + table(th(['Grab', [t('units')], t('store'), [t('units')]]),
+      Array.from({length:10}, (_, i) => `<tr><td>${esc((topG[i] || [''])[0])}</td><td class="n">${topG[i] ? fmt(topG[i][1]) : ''}</td><td>${esc((topS[i] || [''])[0])}</td><td class="n">${topS[i] ? fmt(topS[i][1]) : ''}</td></tr>`).join('')) + '</div></div>' +
+    '<h3>' + t('match_title') + '</h3>' + table(th([t('branch'), t('month'), [t('grab_orders')], [t('matched')], [t('coverage')]]),
+      mcr.map(r => `<tr><td>${bn(r[mc.loc])}</td><td>${r[mc.ym]}</td><td class="n">${fmt(r[mc.orders])}</td><td class="n">${fmt(r[mc.matched])}</td><td class="n">${pct(div(r[mc.matched], r[mc.orders]), 0)}</td></tr>`).join('')) + '</div>';
+  document.getElementById('grab').innerHTML = h;
+}
+
+// ---------------------------------------------------------------- filters, nav, events
+const RENDER = {tree:renderTree, volume:renderVolume, ticket:renderTicket, options:renderOptions, members:renderMembers,
+  menu:renderMenu, insights:renderInsights, weekly:renderWeekly, grab:renderGrab};
+const current = () => { const h = (location.hash || '#tree').slice(1); return RENDER[h] ? h : 'tree'; };
+function render() {
+  const id = current();
+  try { RENDER[id](); } catch (e) { console.error(e); document.getElementById(id).innerHTML = `<div class="card r">${t('render_err', esc(e.message))}</div>`; }
+}
+function nav() {
+  const h = current();
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('show', s.id === h));
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('active', a.hash === '#' + h));
+  render();
+}
+function lastDay() { return D.today_partial ? maxDate() : D.data_through; }
+let _maxDate = null;
+function maxDate() { if (!_maxDate) { const t = A('tree'); _maxDate = D.tree.reduce((m, r) => r[t.d] > m ? r[t.d] : m, D.data_through); } return _maxDate; }
+function minDate() { const t = A('tree'); return D.tree.reduce((m, r) => r[t.d] < m ? r[t.d] : m, D.data_through); }
+function setPreset(p) {
+  F.preset = p; const end = D.data_through;
+  if (p === '7' || p === '30' || p === '90') { F.to = end; F.from = addDays(end, -(+p - 1)); }
+  else if (p === 'this') { F.to = end; F.from = end.slice(0, 8) + '01'; }
+  else if (p === 'prev') { const first = end.slice(0, 8) + '01'; F.to = addDays(first, -1); F.from = F.to.slice(0, 8) + '01'; }
+  if (F.from < minDate()) F.from = minDate();
+}
+function drawFilters() {
+  const presets = [['7', t('p_days', 7)], ['30', t('p_days', 30)], ['90', t('p_days', 90)], ['this', t('p_this')], ['prev', t('p_prev')], ['custom', t('p_custom')]];
+  const segs = (act, list, cur) => '<span class="seg">' + list.map(([k, l]) => `<button data-act="${act}" data-k="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join('') + '</span>';
+  document.getElementById('filters').innerHTML =
+    '<div class="grp"><b>' + t('f_branch') + '</b> <label><input type="checkbox" data-act="ball"' + (F.branches.size === D.branches.length ? ' checked' : '') + '> ' + t('all') + '</label>' +
+    D.branches.map(b => `<label><input type="checkbox" data-act="br" data-k="${esc(b.id)}"${F.branches.has(b.id) ? ' checked' : ''}> ${bn(b.id)}</label>`).join('') + '</div>' +
+    '<div class="grp"><b>' + t('f_channel') + '</b> ' + segs('chan', [['store', t('store')], ['grab', 'Grab'], ['both', t('f_both')]], F.channel) + '</div>' +
+    '<div class="grp rng"><b>' + t('f_range') + '</b> ' + segs('preset', presets, F.preset) +
+    (F.preset === 'custom' ? ` <span class="muted dpt" data-act="calo">${F.from} – ${F.to}</span>` : ` <span class="muted">${F.from} – ${F.to}</span>`) +
+    (CAL.open ? '<div id="cal"></div>' : '') + '</div>' +
+    '<div class="grp"><b>' + t('f_day') + '</b> ' + segs('dtype', [['all', t('every_day')], ['weekday', t('weekday')], ['weekend', t('weekend')], ['holiday', t('holiday')]], F.daytype) + '</div>';
+  if (CAL.open) calDraw();
+}
+// ---- custom-range calendar popover: two months (one on narrow screens), click start then end
+const CAL = {open:false, a:null, hov:null, m:''};   // m = 'YYYY-MM' of the RIGHT month
+function addMonths(ym, n) { const d = new Date(ym + '-01T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 7); }
+function calOpen() { CAL.open = true; CAL.a = CAL.hov = null; CAL.m = lastDay().slice(0, 7); drawFilters(); }
+function calClose() { if (!CAL.open) return; CAL.open = false; CAL.a = CAL.hov = null; const el = document.getElementById('cal'); if (el) el.remove(); }
+function calMonth(ym) {
+  const title = new Intl.DateTimeFormat(LANG === 'th' ? 'th-TH-u-ca-buddhist' : 'en-US', {month:'long', year:'numeric', timeZone:'UTC'}).format(new Date(ym + '-01T00:00:00Z'));
+  const lead = (new Date(ym + '-01T00:00:00Z').getUTCDay() + 6) % 7, n = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate();
+  const lo = minDate(), hi = lastDay(), today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  let g = t('cal_wd').split(' ').map(w => `<div class="w">${w}</div>`).join('') + '<div></div>'.repeat(lead);
+  for (let i = 1; i <= n; i++) {
+    const d = ym + '-' + String(i).padStart(2, '0'), w = (lead + i - 1) % 7;
+    const cls = 'd' + (w >= 5 ? ' we' : '') + (HOL.has(d) ? ' hol' : '') + (d === today ? ' td' : '');
+    g += `<button class="${cls}" data-act="cald" data-k="${d}"${d < lo || d > hi ? ' disabled' : ''}>${i}</button>`;
+  }
+  return `<div><div class="mh">${title}</div><div class="g">${g}</div></div>`;
+}
+function calDraw() {
+  const el = document.getElementById('cal'); if (!el) return;
+  const L = addMonths(CAL.m, -1), lo = minDate().slice(0, 7), hi = lastDay().slice(0, 7);
+  el.innerHTML = '<div class="ms">' + calMonth(L) + calMonth(CAL.m) + '</div>' +
+    '<div class="ft"><span id="calSel"></span><button data-act="calc">' + t('cal_clear') + '</button><button data-act="calx">' + t('cal_close') + '</button></div>';
+  const pv = (m, x) => `<button class="${x}" data-act="calm" data-k="-1" title="${t('cal_prev')}"${m <= lo ? ' disabled' : ''}>‹</button>`;
+  const hs = el.querySelectorAll('.mh');   // left: ‹ ; right: (‹ when narrow) ›
+  hs[0].insertAdjacentHTML('afterbegin', pv(L, '')); hs[0].insertAdjacentHTML('beforeend', '<span></span>');
+  hs[1].insertAdjacentHTML('afterbegin', pv(CAL.m, 'nw'));
+  hs[1].insertAdjacentHTML('beforeend', `<button data-act="calm" data-k="1" title="${t('cal_next')}"${CAL.m >= hi ? ' disabled' : ''}>›</button>`);
+  calPaint();
+}
+function calPaint() {
+  const el = document.getElementById('cal'); if (!el) return;
+  let a = CAL.a ? CAL.a : F.from, b = CAL.a ? (CAL.hov || CAL.a) : F.to;
+  if (a > b) [a, b] = [b, a];
+  el.querySelectorAll('.d').forEach(c => { const d = c.dataset.k;
+    c.classList.toggle('s', d === a); c.classList.toggle('e', d === b); c.classList.toggle('in', d > a && d < b); });
+  document.getElementById('calSel').textContent = CAL.a ? t('cal_end', CAL.a) : (F.preset === 'custom' ? F.from + ' – ' + F.to + ' · ' : '') + t('cal_start');
+}
+document.addEventListener('pointerover', e => {
+  const c = CAL.a && e.target.closest && e.target.closest('#cal .d:not(:disabled)');
+  if (c && c.dataset.k !== CAL.hov) { CAL.hov = c.dataset.k; calPaint(); }
+});
+document.addEventListener('click', e => {   // capture: runs before any redraw detaches the target
+  if (CAL.open && !e.target.closest('#cal, [data-act="calo"], [data-act="preset"][data-k="custom"]')) calClose();
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') calClose(); });
+function changed() { drawFilters(); render(); }
+const ACT = {
+  ball: () => { F.branches = F.branches.size === D.branches.length ? new Set() : new Set(D.branches.map(b => b.id)); changed(); },
+  br: k => { F.branches.has(k) ? F.branches.delete(k) : F.branches.add(k); changed(); },
+  chan: k => { F.channel = k; changed(); },
+  preset: k => { if (k === 'custom') { F.preset = 'custom'; calOpen(); } else { CAL.open = false; setPreset(k); changed(); } },
+  calo: () => calOpen(),
+  calm: k => { CAL.m = addMonths(CAL.m, +k); calDraw(); },
+  cald: k => {
+    if (!CAL.a) { CAL.a = k; CAL.hov = k; calPaint(); return; }
+    const [a, b] = CAL.a <= k ? [CAL.a, k] : [k, CAL.a];
+    F.from = a; F.to = b; F.preset = 'custom'; CAL.open = false; CAL.a = null; changed();
+  },
+  calc: () => { CAL.a = CAL.hov = null; calPaint(); },
+  calx: () => calClose(),
+  dtype: k => { F.daytype = k; changed(); },
+  tree: k => { S.open.has(k) ? S.open.delete(k) : S.open.add(k); render(); },
+  heat: k => { S.heat = k; render(); },
+  attch: k => { S.attachCh = k; render(); },
+  attmode: k => { S.attMode = k; render(); },
+  opp: k => { S.opp = S.opp === k ? null : k; render(); },
+  tchip: k => { S.tHide.has(k) ? S.tHide.delete(k) : S.tHide.add(k); render(); },
+  topen: () => { S.tOpen = !S.tOpen; render(); },
+  tsm: k => { S.tRaw = k === 'raw'; render(); },
+  tmet: k => { S.tMet = k; render(); },
+  tmode: k => { S.tMode = k; render(); },
+  mcat: k => { S.menuCat = k; S.item = null; render(); },
+  item: k => { S.item = k && S.item !== k ? k : null; render(); },
+  lang: k => {   // TH | EN switch: rebuild label tables, then the same re-render path as a filter change
+    if (k === LANG) return;
+    LANG = k; try { localStorage.setItem('sw_lang', k); } catch (e) { /* not persisted */ }
+    applyLang(); banner(); if (D) changed();
+  },
+  copy: () => {
+    const txt = document.getElementById('msg').textContent, ok = () => { document.getElementById('copied').textContent = t('copied'); };
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, () => fallbackCopy(txt, ok)); else fallbackCopy(txt, ok);
+  },
+};
+function fallbackCopy(t, ok) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) {} ta.remove(); }
+const CHANGE = {
+  optg: v => { S.optGroup = v; render(); },
+  goptg: v => { S.gOptGroup = v; render(); },
+  dish: v => { S.dish = v; render(); },
+  combo: (v, el) => { S.combo[+el.dataset.k] = v; render(); },
+  gmonth: v => { S.gmonth = v; render(); },
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el || !ACT[el.dataset.act]) return;
+  if (el.tagName === 'INPUT' && el.type === 'checkbox') e.preventDefault();
+  ACT[el.dataset.act](el.dataset.k, el);
+});
+document.addEventListener('change', e => { const el = e.target.closest('[data-act]'); if (el && CHANGE[el.dataset.act]) CHANGE[el.dataset.act](el.value, el); });
+window.addEventListener('hashchange', () => { nav(); window.scrollTo(0, 0); });
+
+// ---------------------------------------------------------------- load: live edge -> fallback baked copy
+let LOADFAIL = false;
+function banner() {
+  const el = document.getElementById('banner');
+  if (!D) { el.innerHTML = `<span class="pill${LOADFAIL ? ' dead' : ''}">${t(LOADFAIL ? 'load_fail' : 'loading')}</span>` + langToggle(); return; }
+  const ageMin = (Date.now() + 7 * 3600e3 - Date.parse(D.generated_at.replace(' ', 'T') + ':00Z')) / 60000;
+  const stale = ageMin > 90, red = FALLBACK || stale;
+  const extra = FALLBACK ? t('fb_copy') : stale ? t('stale', ageMin > 120 ? t('hrs', Math.round(ageMin / 60)) : t('mins', Math.round(ageMin))) : '';
+  el.innerHTML =
+    `<span class="pill ${red ? 'dead' : 'live'}" id="fresh" title="${FALLBACK ? t('fb_title') : t('live_title')}">${t('data_at', esc(D.generated_at), extra)}</span>` +
+    `<span class="pill">${t('through')} <b>${esc(D.data_through)}</b></span>` +
+    (D.today_partial ? '<span class="muted">' + t('partial') + '</span>' : '') +
+    `<span class="muted">Grab: ${esc(((D.grab && D.grab.months) || []).join(', ')) || '–'}</span>` + langToggle();
+}
+async function fetchLive() {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(EDGE_URL, {headers:{'x-dash-token':TOKEN}, signal:ctl.signal});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+async function load() {
+  try { D = await fetchLive(); FALLBACK = false; }
+  catch (e) { FALLBACK = true; D = await (await fetch('data/data.json', {cache:'no-cache'})).json(); }
+  B = Object.fromEntries(D.branches.map(b => [b.id, b]));
+  HOL = new Set(D.holidays || []);
+  const pt = A('pax_trust'); TRUST = new Map(D.pax_trust.map(r => [r[pt.loc] + '|' + r[pt.d], r]));
+  F.branches = new Set(D.branches.map(b => b.id));
+  setPreset('30');
+  banner(); drawFilters(); nav();
+  // every 10 min: if the edge has a newer generated_at, offer a reload
+  setInterval(async () => {
+    try {
+      const d2 = await fetchLive();
+      if (d2.generated_at > D.generated_at && !document.getElementById('freshBtn')) {
+        const b = document.createElement('button'); b.id = 'freshBtn';
+        b.dataset.g = d2.generated_at; b.textContent = t('new_data', d2.generated_at);
+        b.onclick = () => location.reload(); document.body.appendChild(b);
+      }
+    } catch (e) { /* offline: keep current data */ }
+  }, 600000);
+}
+applyLang(); banner();
+load().catch(e => { console.error(e); D = null; LOADFAIL = true; banner(); });
+</script></div></body></html>

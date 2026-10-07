@@ -147,12 +147,24 @@ is POS-native and already mirrored in the backbone.
     (Point 2026-10-07, see Key design decisions).
     seat_minutes = Σ persons × overlap minutes with the hour; bills_open = orders overlapping the hour;
     turns = orders OPENED in the hour; dwell_min_sum = their dwell (avg dwell by hour = dwell_min_sum ÷ turns).
-    Payload feed `occupancy` cols [loc, d, hour, seat_min, bills_open, turns, dwell_sum], 90 days.
-    UI: occupancy % = Σ seat_min ÷ (seats × 60 × days in the filter); display capped at 100% (raw in the
-    tooltip; > 100% = pax over-keying or table sharing); colours green ≥ 80 เต็ม / amber 50–79 / grey < 50 ว่าง;
+    Payload feed `occupancy` cols [loc, d, hour, seat_min, bills_open, turns, dwell_sum, persons_opened], 90 days.
+    **LOCKED DEFINITION (Point 2026-10-07): Occupancy % (branch, hour) = Σ person-minutes seated in that
+    hour ÷ (seats × 60 × open days).** persons = main bowls + sets (min 1), never keyed pax; interval =
+    main bill opened → closed (split children inherit the master's open), fallback table session, drop
+    < 3 or > 240 min; only the overlap with the hour counts (seat_minutes is computed with
+    least/greatest overlap); seats = sales_web.seats (bar + stools included); **open days = distinct dates
+    in the selected range with ≥ 1 dine-in row (orders > 0) in the `tree` feed** (closed days / holidays,
+    e.g. Rama 9 Mondays, do not dilute; falls back to occupancy-feed dates if tree has none).
+    UI: occupancy % as above; display capped at 100% (raw in the
+    tooltip; > 100% = pax over-keying or table sharing); colours green ≥ 80 เต็ม / amber 50–79 ปานกลาง / grey < 50 ว่าง;
     lunch 11–13 and dinner 17–20 column groups shaded like the tree table; second row per branch =
     **turns per seat per hour** (turns ÷ seats ÷ days); tooltip = raw %, avg guest-minutes/day, bills
-    open/day, turns/day, seats, days. Seats: sales_web.seats (rama9 16, gaysorn 54, occ 66, all-seasons
+    open/day, turns/day, seats, days. **Companion strips per branch (same card, indented rows):** dwell
+    (avg min of bills opened that hour = dwell_sum ÷ turns), capacity = seats × 60 ÷ dwell (persons/hr
+    the room can serve), served = persons_opened ÷ open days (persons whose bill opened that hour),
+    gap = capacity − served (red "คิว / queue" when occupancy ≥ 80% and gap ≤ 10% of capacity or
+    negative; amber when gap < 30% of capacity), turns/seat. Card note 3 carries the formula text
+    (TH/EN). Rama 9 ≈ 0 until bills are opened at order time. Seats: sales_web.seats (rama9 16, gaysorn 54, occ 66, all-seasons
     60, sathorn 64, silom 73). Grab leg of section 2 unchanged (demand curve, no seat cap).
   - **(d) dwell** shows avg dwell by the hour the bill opened (feed occupancy) above the existing daypart
     table (feed dwell).

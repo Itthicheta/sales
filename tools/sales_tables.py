@@ -569,11 +569,15 @@ def build_occupancy(cur):
                   people join tables later; on average 1 person = 1 main.
     seat_minutes = sum(persons x overlap minutes with the hour); bills_open = orders
     overlapping the hour; turns = orders OPENED in the hour; dwell_min_sum = sum of the dwell
-    of those opened orders (avg dwell by hour = dwell_min_sum / turns).
-    UI: occupancy % = sum(seat_minutes) / (seats x 60 x days)."""
+    of those opened orders (avg dwell by hour = dwell_min_sum / turns);
+    persons_opened = sum of persons of those opened orders (served).
+    UI (LOCKED 2026-10-07): occupancy % = sum(seat_minutes) / (seats x 60 x open days), open days =
+    distinct dates in range with a dine-in row in the tree feed (orders > 0). seat_minutes already
+    counts only the overlap of each interval with the hour."""
+    cur.execute("alter table if exists sales_web.occupancy_hourly add column if not exists persons_opened int")
     rebuild(cur, "occupancy_hourly",
         """location_id text, business_date date, hour int, seat_minutes numeric, bills_open int,
-           turns int, dwell_min_sum numeric""",
+           turns int, dwell_min_sum numeric, persons_opened int""",
         f"""with ts as (
               select order_id, min(seated_at) seated_at, max(left_at) left_at
               from mp_clean.table_sessions where not coalesce(is_cancelled, false) group by 1),
@@ -614,7 +618,8 @@ def build_occupancy(cur):
                                                                - greatest(lv.sl, g.hs)) / 60), 0), 1),
                    count(lv.order_id),
                    count(*) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'),
-                   round(coalesce(sum(lv.dm) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0), 1)
+                   round(coalesce(sum(lv.dm) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0), 1),
+                   coalesce(sum(lv.pu) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0)::int
             from grid g
             left join lv on lv.location_id = g.location_id and lv.business_date = g.business_date
                         and lv.sl < g.hs + interval '1 hour' and lv.el > g.hs

@@ -143,7 +143,8 @@ def build():
     data["occupancy"] = feed("occupancy", """
         select location_id loc, to_char(business_date,'YYYY-MM-DD') d, hour, seat_minutes seat_min,
                bills_open, turns,
-               dwell_min_sum dwell_sum   -- appended: sum of dwell minutes of the `turns` orders
+               dwell_min_sum dwell_sum,   -- appended: sum of dwell minutes of the `turns` orders
+               persons_opened             -- appended 2026-10-07: persons of bills opened in the hour (served)
         from sales_web.occupancy_hourly where business_date >= current_date - 90
         order by business_date, location_id, hour""")
     data["pax_trust"] = feed("pax_trust", """

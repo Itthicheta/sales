@@ -418,7 +418,10 @@ const T = {
     "dead_target": "เป้า occupancy",
     "dead_note": "ต่อสาขา ชั่วโมง 10–20 ในช่วงวันที่ที่เลือก · occupancy = คนเปิดบิล ÷ ที่นั่ง (1 คน/ที่นั่ง/ชม.) · คนที่ต้องเพิ่ม = (เป้า − occupancy) × ที่นั่ง · ฿ = คน × ยอดเฉลี่ยต่อหัว (ทานที่ร้าน) · ฿/เดือน = ฿/วัน × วันเปิด (เทียบ 30 วัน) · ไม่นับชั่วโมงที่ถึงเป้าแล้ว",
     "dead_hours_h": "ชั่วโมงที่ต่ำกว่าเป้า",
-    "dead_ppl": "คน/วัน",
+    "dead_ppl": "คนเพิ่ม/วัน (รวมทุก ชม.)",
+    "dead_short": "ตัวเลขในช่อง = occupancy ตอนนี้ → เป้า (วันธรรมดา 30 วันล่าสุด) · ✓ = ถึงเป้าแล้ว · เป้า = ค่าที่ต่ำกว่าระหว่างสาขาเพื่อนอันดับ 2 กับ 4 สัปดาห์ที่ดีที่สุดของตัวเอง",
+    "dead_more": "วิธีคำนวณ",
+    "dead_cell_tip": "{0}:00 · ตอนนี้ {1} → เป้า {2} ({3}) · +{4} คน/วัน · ฿{5}/วัน",
     "dead_tkt": "฿/หัว",
     "dead_day": "฿/วัน",
     "dead_month": "฿/เดือน",
@@ -881,7 +884,10 @@ const T = {
     "dead_target": "Occupancy target",
     "dead_note": "Per branch, hours 10–20 over the selected range · occupancy = persons opened ÷ seats (1 guest / seat / hour) · people needed = (target − occupancy) × seats · ฿ = people × avg ticket per head (dine-in) · ฿/month = ฿/day × open days (scaled to 30 days) · hours already at target add nothing",
     "dead_hours_h": "Hours below target",
-    "dead_ppl": "People/day",
+    "dead_ppl": "Extra guests/day (all hours)",
+    "dead_short": "Cell = occupancy now → target (weekdays, last 30 days) · ✓ = at target · target = the lower of the 2nd-best office branch and the branch's own best 4 weeks",
+    "dead_more": "How it is calculated",
+    "dead_cell_tip": "{0}:00 · now {1} → target {2} ({3}) · +{4} guests/day · ฿{5}/day",
     "dead_tkt": "฿/head",
     "dead_day": "฿/day",
     "dead_month": "฿/month",
@@ -1812,14 +1818,23 @@ function deadCard() {
   let body = '';
   if (mode === 'peer') {
     const d = A('dead_hours'), dr = get('dead_hours');
+    const HRS = [...new Set(dr.map(r => r[d.hour]))].sort((a, b) => a - b);   // 10, 14, 15, 16, 20
     for (const id of selBranches()) {
-      if (id === 'rama9') { body += `<tr><td>${bn(id)}</td><td class="muted" colspan="5">${t('dead_r9')}</td></tr>`; continue; }
+      if (id === 'rama9') { body += `<tr><td>${bn(id)}</td><td class="muted" colspan="${HRS.length + 4}">${t('dead_r9')}</td></tr>`; continue; }
       const x = dr.filter(r => r[d.loc] === id); if (!x.length) continue;
       const ppl = sum(x, r => r[d.persons]), day = sum(x, r => r[d.thb_day]), days = x[0][d.days];
-      body += `<tr><td>${bn(id)}</td><td class="muted">${deadHourList(id)}</td><td class="n">${fmt(ppl, 1)}</td><td class="n">${fmt(x[0][d.ticket])}</td><td class="n">${fmt(day)}</td><td class="n"><b>${fmt(day * days)}</b></td></tr>`;
+      // one compact cell per quiet hour: "22→31%" (gap) or "35% ✓" (at target); detail in the tooltip
+      const cells = HRS.map(hh => {
+        const r = x.find(q => q[d.hour] === hh); if (!r) return '<td class="n muted">–</td>';
+        if (r[d.target] == null || !(r[d.thb_day] > 0)) return `<td class="n muted">${pct(r[d.occ], 0)} ✓</td>`;
+        const basis = r[d.peer] != null && Math.abs(r[d.peer] - r[d.target]) < 1e-9 ? t('dead_by_peer', bn(r[d.peer_loc])) : t('dead_by_own', ddmm(r[d.own_win]));
+        return `<td class="n" title="${esc(t('dead_cell_tip', hh, pct(r[d.occ], 0), pct(r[d.target], 0), basis, fmt(r[d.persons], 1), fmt(r[d.thb_day])))}">${pct(r[d.occ], 0)}<span class="muted">→</span>${pct(r[d.target], 0)}</td>`;
+      }).join('');
+      body += `<tr><td>${bn(id)}</td>${cells}<td class="n">${fmt(ppl, 1)}</td><td class="n">${fmt(x[0][d.ticket])}</td><td class="n">${fmt(day)}</td><td class="n"><b>${fmt(day * days)}</b></td></tr>`;
     }
-    return `<div class="card"><b>${t('t_dead_val')}</b> ${seg}<div class="note">${t('dead_note_peer')}</div>` +
-      table(th([t('branch'), t('dead_hours_h'), [t('dead_ppl')], [t('dead_tkt')], [t('dead_day')], [t('dead_month_wd')]]), body) + '</div>';
+    return `<div class="card"><b>${t('t_dead_val')}</b> ${seg}<div class="note">${t('dead_short')}</div>` +
+      table(th([t('branch'), ...HRS.map(h => [h + ':00']), [t('dead_ppl')], [t('dead_tkt')], [t('dead_day')], [t('dead_month_wd')]]), body) +
+      `<details class="note"><summary>${t('dead_more')}</summary>${t('dead_note_peer')}</details></div>`;
   }
   const T_ = mode, ag = occAgg(), tr = A('tree'), trs = rows('tree', {ch:['dine_in']});
   const end = F.to < maxDate() ? F.to : maxDate();
@@ -1838,8 +1853,8 @@ function deadCard() {
     const day = ppl * (tk || 0), month = day * x.days / span * 30;
     body += `<tr><td>${bn(id)}</td><td class="muted">${hrs.join(' ') || t('dead_none')}</td><td class="n">${fmt(ppl, 0)}</td><td class="n">${fmt(tk)}</td><td class="n">${fmt(day)}</td><td class="n">${fmt(month)}</td></tr>`;
   }
-  return `<div class="card"><b>${t('t_dead_val')}</b> ${seg} <span class="tag">${t('dead_ceiling')}</span><div class="note">${t('dead_note')}</div>` +
-    `<div class="note"><b>${t('dead_caveat')}</b></div>` +
+  return `<div class="card"><b>${t('t_dead_val')}</b> ${seg} <span class="tag">${t('dead_ceiling')}</span><div class="note"><b>${t('dead_caveat')}</b></div>` +
+    `<details class="note"><summary>${t('dead_more')}</summary>${t('dead_note')}</details>` +
     table(th([t('branch'), t('dead_hours_h'), [t('dead_ppl')], [t('dead_tkt')], [t('dead_day')], [t('dead_month')]]), body) + '</div>';
 }
 function ticketGrab() {

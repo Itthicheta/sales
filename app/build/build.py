@@ -51,7 +51,7 @@ BUDGET_MB = 8.0
 MONEY = {"gross", "disc", "net", "opt_thb", "main_thb", "bev_thb", "side_thb", "top_thb", "des_thb",
          "thb", "price", "paid_thb", "menu_thb", "expected", "uplift", "avg_thb", "avg",
          "comm", "mkt", "payout", "spend", "sales", "bev_paid_thb", "bev_premium_thb",
-         "est_thb", "ads_thb", "adjust_thb", "set_thb"}   # column aliases holding THB amounts
+         "est_thb", "ads_thb", "adjust_thb", "set_thb", "value"}   # column aliases holding THB amounts
 YM_MIN = "to_char(current_date - interval '3 months','YYYY-MM')"   # growth guard 1
 bb = Backbone(load())
 
@@ -204,10 +204,25 @@ def build():
         select location_id loc, to_char(business_date,'YYYY-MM-DD') d, channel, orders, net_thb net,
                dow, dom, wom, is_holiday hol, rain_mm rain, expected_thb expected, gap_pct gap
         from sales_web.calendar_daily order by business_date, location_id, channel""")
+    # opportunity calculator v2 (Point 2026-10-08): two targets (office peer 2nd-best / own best
+    # 4 weeks), target = the smaller one above current, value per lever (see sales_tables.build_opportunity)
     data["opportunity"] = feed("opportunity", """
-        select location_id loc, channel, lever, current_rate rate, best_location_id best_loc,
-               best_rate, main_units_30d main30, unit_price_thb price, uplift_thb_month uplift
+        select location_id loc, channel, lever, current_rate rate, peer_target peer, peer_best_loc peer_loc,
+               own_best own, to_char(own_best_window,'YYYY-MM-DD') own_win, target_used target, gap_pp,
+               meals_30d meals30, value_per_unit_thb value, uplift_thb_month uplift, note
         from sales_web.opportunity order by uplift_thb_month desc nulls last""")
+    data["set_inc"] = feed("set_inc", """
+        select location_id loc, set_bills, nonset_bills, incremental_thb_per_set value,
+               diff_per_meal_thb diff, persons_per_set_bill persons, sets_per_set_bill sets
+        from sales_web.set_incremental order by location_id""")
+    # menu-pair scripts (2026-10-08): top 300 rows per branch by bills_both
+    data["pairs_menu"] = feed("pairs_menu", """
+        select loc, channel, fam, item, bills_main, bills_both, rate, price from (
+          select location_id loc, channel, main_family fam, item, bills_main, bills_both, rate,
+                 item_price_thb price,
+                 row_number() over (partition by location_id order by bills_both desc, rate desc) rk
+          from sales_web.pair_attach) x
+        where rk <= 300 order by loc, rk""")
 
     g = {}
     g["daily"] = feed("grab.daily", """

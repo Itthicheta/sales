@@ -79,7 +79,7 @@ DAYPART = f"""case when extract(hour from o.closed_at {BKK}) between 11 and 13 t
 TABLES = ["tree_daily", "hourly", "dwell", "pax_trust", "item_daily", "option_monthly",
           "option_by_dish", "topping_route", "pair_lift", "party_size", "ticket_hist",
           "members_monthly", "member_visits", "promo_daily", "set_monthly", "calendar_daily",
-          "opportunity", "grab_match", "occupancy_hourly"]
+          "opportunity", "grab_match", "occupancy_hourly", "set_incremental", "pair_attach"]
 
 
 def rebuild(cur, table: str, ddl_cols: str, select_sql: str):
@@ -460,54 +460,319 @@ def build_calendar(cur):
       where e.location_id=c.location_id and e.business_date=c.business_date and e.channel=c.channel""")
 
 
+OPP_DAYS = 30            # calculator window = last 30 full days (current_date-30 .. current_date-1)
+OWN_BEST_DAYS = 90       # own-best search range: 28-day windows stepping 7 days inside the last 90 days
+SET_INC_DAYS = 90        # set_incremental measurement window (sets are few: ~100-230/branch/month)
+PEER_MIN_MEALS = 1000    # peer qualifier: office branch with >= 1,000 meals (main+set) in the window
+OPP_MIN_MEALS = 100      # a branch x channel row needs >= 100 meals (also: own-best window minimum)
+PEERLESS = ("rama9",)    # peer group `office` = every live branch except these; they get peer_target NULL
+DEAD_TARGET = 0.5        # dead-hours default target occupancy (UI offers 40/50/60%)
+DEAD_SKIP = ("rama9",)   # occupancy unmeasurable (counter-style keying, ~90% bills < 3 min)
+VARIANT_RE = r"\s(ธรรมดา|เครื่องใน|ทรงเครื่อง)\s*$"
+OPP_WIN = "business_date between current_date-%d and current_date-1" % OPP_DAYS
+INSTORE = "('dine_in','take_away')"
+
+
+def family_sql(name_col: str) -> str:
+    """Main-dish family = item name without its menu code and trailing variant word
+    (N1 'ก๋วยเตี๋ยว ต้มยำแห้ง ธรรมดา' -> 'ก๋วยเตี๋ยว ต้มยำแห้ง'). Items without a variant word keep
+    their code-less name (they are a family of one; not in scope for the trade-up lever)."""
+    base = rf"regexp_replace({name_col}, '^\s*[A-Za-z]+\d+\s*', '')"
+    return rf"btrim(regexp_replace({base}, '{VARIANT_RE}', ''))"
+
+
+def variant_sql(name_col: str) -> str:
+    return rf"substring({name_col} from '{VARIANT_RE}')"
+
+
+def build_set_incremental(cur):
+    """Measured incremental ฿ per set (Point 2026-10-08). Per branch, in-store bills (dine-in +
+    take-away) of the last SET_INC_DAYS full days, persons = main + set units (>= 1 kept, 0 dropped),
+    bucketed 1 / 2 / 3-4 / 5+. In each bucket: net ฿ per meal on bills WITH a set minus on bills
+    WITHOUT; the bucket diffs are averaged weighted by set-bill count. incremental per set-bill =
+    max(0, diff) x avg persons per set-bill; per SET = that / avg sets per set-bill (= the same
+    number when a set-bill holds one set, which is the norm)."""
+    rebuild(cur, "set_incremental",
+        """location_id text, set_bills int, nonset_bills int, incremental_thb_per_set numeric, method text,
+           diff_per_meal_thb numeric, persons_per_set_bill numeric, sets_per_set_bill numeric""",
+        f"""with b as (
+              select location_id, total_thb net, main_units + set_units p, set_units s,
+                     case when main_units + set_units <= 1 then '1' when main_units + set_units = 2 then '2'
+                          when main_units + set_units <= 4 then '3-4' else '5+' end bk
+              from t_ord
+              where business_date between current_date-{SET_INC_DAYS} and current_date-1
+                and channel in {INSTORE} and main_units + set_units > 0),
+            k as (
+              select location_id, bk,
+                     count(*) filter (where s > 0) n_s, count(*) filter (where s = 0) n_n,
+                     sum(net) filter (where s > 0) / nullif(sum(p) filter (where s > 0), 0)
+                       - sum(net) filter (where s = 0) / nullif(sum(p) filter (where s = 0), 0) d
+              from b group by 1, 2),
+            w as (
+              select location_id, sum(n_s * d) / nullif(sum(n_s) filter (where d is not null), 0) d
+              from k where d is not null group by 1),
+            t as (
+              select location_id, count(*) filter (where s > 0) sb, count(*) filter (where s = 0) nb,
+                     avg(p) filter (where s > 0) pp, avg(s) filter (where s > 0) sp
+              from b group by 1)
+            select t.location_id, t.sb, t.nb,
+                   round(greatest(coalesce(w.d, 0), 0) * coalesce(t.pp, 0) / nullif(t.sp, 0), 2),
+                   'in-store bills, last {SET_INC_DAYS} full days; per persons bucket (1/2/3-4/5+, persons = bowls+sets): '
+                   || 'net per meal WITH set - WITHOUT set, weighted by set-bill count; '
+                   || 'x avg persons per set-bill / avg sets per set-bill; floored at 0',
+                   round(w.d, 2), round(t.pp, 2), round(t.sp, 2)
+            from t left join w using (location_id)""")
+
+
+def build_pair_attach(cur):
+    """Menu-pair scripts (Point 2026-10-08): for each main family x side / paid-or-premium drink /
+    dessert item (upsell layer = menu lines + merged paid option picks; set picks and water out),
+    per branch x in-store channel over the last OPP_DAYS full days:
+    rate = bills with both / bills with the main family. item_price_thb = that item's avg ฿/unit at
+    the branch (upsell layer) — the UI's ฿ for 'if branch X matched branch Y'."""
+    rebuild(cur, "pair_attach",
+        """location_id text, channel text, main_family text, item text, bills_main int, bills_both int,
+           rate numeric, item_price_thb numeric""",
+        f"""with u as (
+              select u.order_id, u.location_id, u.channel, u.itemid, u.tree_category, u.bev_tier,
+                     u.qty, u.thb, it.name_th
+              from t_units u join mp_clean.items it on it.itemid = u.itemid
+              where u.{OPP_WIN} and u.channel in {INSTORE} and u.source <> 'set'),
+            mf as (select distinct order_id, location_id, channel, {family_sql('name_th')} fam
+                   from u where tree_category = 'main'),
+            itm as (select distinct order_id, {family_sql('name_th')} item
+                   from u where tree_category in ('side','dessert')
+                             or (tree_category = 'beverage' and bev_tier in ('paid','premium'))),
+            pr as (select location_id, {family_sql('name_th')} item, sum(thb) / nullif(sum(qty), 0) p
+                   from u where tree_category in ('side','dessert','beverage') group by 1, 2),
+            bm as (select location_id, channel, fam, count(*) n from mf group by 1, 2, 3)
+            select mf.location_id, mf.channel, mf.fam, it.item, bm.n, count(*),
+                   round(count(*)::numeric / bm.n, 4), round(pr.p, 2)
+            from mf join itm it on it.order_id = mf.order_id
+            join bm on bm.location_id = mf.location_id and bm.channel = mf.channel and bm.fam = mf.fam
+            left join pr on pr.location_id = mf.location_id and pr.item = it.item
+            group by mf.location_id, mf.channel, mf.fam, it.item, bm.n, pr.p""")
+
+
 def build_opportunity(cur):
-    """Opportunity calculator, last 30 full days, per branch x channel x lever.
-    Denominator = main occasions (main + set units — a set is a meal).
-    Upsell levers (side / bev_paid / bev_premium / dessert / topping) use the อัพเซล layer
-    only: units sold as a menu line or a paid option (source <> 'set'), so the forced
-    picks inside a set don't inflate a branch's attach. Price = that layer's avg ฿/unit.
-    Lever `set` (2026-10-07) = set units / main occasions, priced at the avg set price.
-    best = highest branch rate for that channel;
-    uplift ฿/month = (best - current) x main occasions 30d x avg unit price of the lever.
-    POS channel 'delivery' is excluded: those are Grab orders keyed at POS markup
-    prices (Grab money comes only from the Grab files). Drink price is per tier
-    (paid / premium); water baht never enters a drink price."""
+    """Opportunity calculator v2 (Point 2026-10-08). Window: last OPP_DAYS full days, in-store
+    channels dine_in and take_away SEPARATELY (POS delivery = Grab at POS markup -> out).
+    Rows: branch x channel x lever with >= OPP_MIN_MEALS meals (main + set).
+
+    rate (current) = upsell-layer units / meals (side, dessert, topping=Sharing, bev_paid,
+    bev_premium, set), except tradeup = ทรงเครื่อง units / all variant units in families that HAVE a
+    ทรงเครื่อง item (for tradeup meals_30d holds that denominator, not meals).
+
+    Two targets:
+      peer_target = office peers (all live branches except PEERLESS): 2nd-highest rate among office
+        branches with >= PEER_MIN_MEALS meals in that channel; if < 3 qualify -> the highest OTHER
+        office branch (>= OPP_MIN_MEALS). PEERLESS branches (Rama 9) get NULL.
+      own_best = the branch's best 28-day window (stepping 7 days, last OWN_BEST_DAYS days,
+        window needs >= OPP_MIN_MEALS of denominator); own_best_window = that window's start.
+    target_used = the SMALLER of the targets that are above current (conservative); none above ->
+      uplift 0, note 'already at target'.
+    value_per_unit_thb:
+      side / dessert / topping = branch avg ฿/unit of the category (upsell layer, in-store, window)
+      bev_paid / bev_premium   = tier difference: branch avg paid (premium) price - water price
+                                 (H3 น้ำเปล่า list price, ฿16.05) — the lever is conversion from water
+      tradeup                  = list price ทรงเครื่อง - ธรรมดา per family, weighted by the branch's
+                                 units in that family (≈ ฿54)
+      set                      = sales_web.set_incremental.incremental_thb_per_set (measured)
+    uplift_thb_month = (target_used - current) x meals_30d x value_per_unit_thb.
+    Plus one `dead_hours` row per branch (channel dine_in): see build_dead_hours."""
+    cur.execute("drop table if exists t_lev")
+    cur.execute(f"""
+      create temp table t_lev on commit drop as
+      -- daily numerators / denominators per branch x channel x lever (own-best needs daily grain)
+      with meals as (
+        select location_id, channel, business_date, sum(main_units + set_units) m
+        from t_ord where channel in {INSTORE}
+          and business_date between current_date-{OWN_BEST_DAYS} and current_date-1
+        group by 1, 2, 3),
+      u as (
+        select location_id, channel, business_date,
+               case when tree_category = 'side' then 'side'
+                    when bev_tier = 'paid' then 'bev_paid'
+                    when bev_tier = 'premium' then 'bev_premium'
+                    when tree_category = 'dessert' then 'dessert'
+                    when tree_category = 'topping' then 'topping'
+                    when tree_category = 'set' then 'set' end lever,
+               sum(qty) n
+        from t_units
+        where channel in {INSTORE} and source <> 'set'
+          and business_date between current_date-{OWN_BEST_DAYS} and current_date-1
+        group by 1, 2, 3, 4),
+      fam_ts as (   -- families that HAVE a ทรงเครื่อง item (menu-wide)
+        select distinct {family_sql('name_th')} fam from mp_clean.items
+        where tree_category = 'main' and {variant_sql('name_th')} = 'ทรงเครื่อง'),
+      tu as (
+        select t.location_id, t.channel, t.business_date,
+               sum(t.qty) filter (where {variant_sql('it.name_th')} = 'ทรงเครื่อง') n,
+               sum(t.qty) d
+        from t_units t join mp_clean.items it on it.itemid = t.itemid
+        where t.channel in {INSTORE} and t.tree_category = 'main' and t.source = 'menu'
+          and t.business_date between current_date-{OWN_BEST_DAYS} and current_date-1
+          and {variant_sql('it.name_th')} is not null
+          and {family_sql('it.name_th')} in (select fam from fam_ts)
+        group by 1, 2, 3)
+      select m.location_id, m.channel, m.business_date, l.lever, coalesce(u.n, 0) n, m.m d
+      from meals m
+      cross join (values ('side'),('bev_paid'),('bev_premium'),('dessert'),('topping'),('set')) l(lever)
+      left join u on u.location_id = m.location_id and u.channel = m.channel
+                 and u.business_date = m.business_date and u.lever = l.lever
+      union all
+      select location_id, channel, business_date, 'tradeup', coalesce(n, 0), d from tu""")
+    # per-branch value of one unit for each lever
+    cur.execute("drop table if exists t_val")
+    cur.execute(f"""
+      create temp table t_val on commit drop as
+      with w as (select coalesce((select retail_price_thb from mp_clean.items where item_code = 'H3'
+                                  order by itemid limit 1), 16.05) p),
+      c as (
+        select location_id,
+               case when tree_category in ('side','dessert','topping') then tree_category
+                    when bev_tier = 'paid' then 'bev_paid' when bev_tier = 'premium' then 'bev_premium' end lever,
+               sum(thb) / nullif(sum(qty), 0) p
+        from t_units
+        where {OPP_WIN} and channel in {INSTORE} and source <> 'set'
+        group by 1, 2),
+      lp as (   -- list price per family x variant
+        select {family_sql('name_th')} fam, {variant_sql('name_th')} v, avg(retail_price_thb) p
+        from mp_clean.items where tree_category = 'main' and {variant_sql('name_th')} is not null
+          and retail_price_thb > 0
+        group by 1, 2),
+      fd as (select a.fam, a.p - b.p d from lp a join lp b on b.fam = a.fam and b.v = 'ธรรมดา'
+             where a.v = 'ทรงเครื่อง'),
+      fu as (
+        select t.location_id, {family_sql('it.name_th')} fam, sum(t.qty) n
+        from t_units t join mp_clean.items it on it.itemid = t.itemid
+        where t.{OPP_WIN} and t.channel in {INSTORE} and t.tree_category = 'main' and t.source = 'menu'
+          and {variant_sql('it.name_th')} is not null
+        group by 1, 2)
+      select location_id, lever,
+             case when lever in ('bev_paid','bev_premium') then greatest(p - (select p from w), 0) else p end v,
+             null::text basis
+      from c where lever is not null
+      union all
+      select fu.location_id, 'tradeup', sum(fu.n * fd.d) / nullif(sum(fu.n), 0), null
+      from fu join fd using (fam) group by 1
+      union all
+      select location_id, 'set', incremental_thb_per_set, null from sales_web.set_incremental""")
     rebuild(cur, "opportunity",
-        """location_id text, channel text, lever text, current_rate numeric, best_location_id text,
-           best_rate numeric, main_units_30d numeric, unit_price_thb numeric, uplift_thb_month numeric""",
-        """with u as (
-             select location_id, channel,
-                    case when tree_category = 'side' then 'side'
-                         when bev_tier = 'paid' then 'bev_paid'
-                         when bev_tier = 'premium' then 'bev_premium'
-                         when tree_category = 'dessert' then 'dessert'
-                         when tree_category = 'topping' then 'topping'
-                         when tree_category = 'set' then 'set' end lever,
-                    sum(qty) units, sum(thb) thb
-             from t_units
-             where business_date between current_date-30 and current_date-1
-               and channel <> 'delivery' and source <> 'set'
-             group by 1,2,3),
-           m as (
-             select location_id, channel, sum(main_units + set_units) mu
-             from t_ord
-             where business_date between current_date-30 and current_date-1
-               and channel <> 'delivery' group by 1,2 having sum(main_units + set_units) >= 100),
-           -- a branch that sells none of a lever is priced at the channel's avg price
-           pc as (select channel, lever, sum(thb)/nullif(sum(units),0) p from u group by 1,2),
-           r as (
-             select m.location_id, m.channel, l.lever, coalesce(u.units,0)/m.mu rate, m.mu,
-                    coalesce(u.thb/nullif(u.units,0), pc.p) price
-             from m
-             cross join (values ('side'),('bev_paid'),('bev_premium'),('dessert'),('topping'),('set')) l(lever)
-             left join u on u.location_id=m.location_id and u.channel=m.channel and u.lever=l.lever
-             left join pc on pc.channel=m.channel and pc.lever=l.lever),
-           best as (select distinct on (channel, lever) channel, lever, location_id, rate
-                    from r where rate is not null order by channel, lever, rate desc)
-           select r.location_id, r.channel, r.lever, round(r.rate,3), b.location_id, round(b.rate,3),
-                  r.mu, round(coalesce(r.price,0)),
-                  round(greatest(b.rate - coalesce(r.rate,0), 0) * r.mu * coalesce(r.price,0))
-           from r join best b on b.channel=r.channel and b.lever=r.lever""")
+        """location_id text, channel text, lever text, current_rate numeric, peer_target numeric,
+           peer_best_loc text, own_best numeric, own_best_window date, target_used numeric,
+           gap_pp numeric, meals_30d numeric, value_per_unit_thb numeric, uplift_thb_month numeric,
+           note text""",
+        f"""with cur_ as (
+              select location_id, channel, lever, sum(n) n, sum(d) d, sum(n) / nullif(sum(d), 0) rate
+              from t_lev where {OPP_WIN} group by 1, 2, 3),
+            meals as (select location_id, channel, sum(d) m from t_lev
+                      where lever = 'side' and {OPP_WIN} group by 1, 2),
+            r as (select c.*, m.m meals from cur_ c join meals m using (location_id, channel)
+                  where m.m >= {OPP_MIN_MEALS} and c.d > 0),
+            win as (
+              select k, current_date - 1 - 7 * k e, current_date - 28 - 7 * k s
+              from generate_series(0, ({OWN_BEST_DAYS} - 28) / 7) k),
+            wr as (
+              select l.location_id, l.channel, l.lever, w.s, sum(l.n) / nullif(sum(l.d), 0) rate
+              from t_lev l join win w on l.business_date between w.s and w.e
+              group by 1, 2, 3, 4 having sum(l.d) >= {OPP_MIN_MEALS}),
+            own as (select distinct on (location_id, channel, lever) location_id, channel, lever, rate, s
+                    from wr order by location_id, channel, lever, rate desc, s desc),
+            -- peer pool: office branches whose denominator is >= OPP_MIN_MEALS (for tradeup that is
+            -- variant bowls, not meals — take-away tradeup bases of 24-78 bowls are noise)
+            off as (select * from r where location_id not in {_sql_list(PEERLESS)} and d >= {OPP_MIN_MEALS}),
+            q as (select channel, lever, location_id, rate,
+                         row_number() over (partition by channel, lever order by rate desc) rk,
+                         count(*) over (partition by channel, lever) nq
+                  from off where meals >= {PEER_MIN_MEALS}),
+            peer as (
+              select r.location_id, r.channel, r.lever,
+                     case when r.location_id in {_sql_list(PEERLESS)} then null
+                          when q2.location_id is not null then q2.rate
+                          else (select o.rate from off o where o.channel = r.channel and o.lever = r.lever
+                                  and o.location_id <> r.location_id order by o.rate desc limit 1) end pt,
+                     case when r.location_id in {_sql_list(PEERLESS)} then null
+                          when q2.location_id is not null then q2.location_id
+                          else (select o.location_id from off o where o.channel = r.channel and o.lever = r.lever
+                                  and o.location_id <> r.location_id order by o.rate desc limit 1) end pl
+              from r left join q q2 on q2.channel = r.channel and q2.lever = r.lever and q2.rk = 2 and q2.nq >= 3),
+            x as (
+              select r.location_id, r.channel, r.lever, r.rate, p.pt, p.pl, o.rate ob, o.s obw,
+                     case when r.lever = 'tradeup' then r.d else r.meals end base,
+                     v.v val,
+                     least(case when p.pt > r.rate then p.pt end,
+                           case when o.rate > r.rate then o.rate end) tu
+              from r join peer p using (location_id, channel, lever)
+              left join own o using (location_id, channel, lever)
+              left join t_val v on v.location_id = r.location_id and v.lever = r.lever)
+            select location_id, channel, lever, round(rate, 4), round(pt, 4), pl, round(ob, 4), obw,
+                   round(tu, 4), round(100 * coalesce(tu - rate, 0), 2), base, round(coalesce(val, 0), 2),
+                   round(coalesce(tu - rate, 0) * base * coalesce(val, 0)),
+                   case when pt is null and ob is null then 'no target (sample too small)'
+                        when tu is null then 'already at target' else '' end
+                   || case when lever = 'tradeup' then
+                        case when tu is null then ' · ' else '' end
+                        || 'base = ' || base::int || ' bowls in families with ทรงเครื่อง' else '' end
+            from x""")
+    # tradeup info: เครื่องใน share (information only, not a lever)
+    cur.execute(f"""
+      update sales_web.opportunity o set note = o.note || ' · เครื่องใน ' || round(100 * k.s) || '%'
+      from (select t.location_id, t.channel,
+                   sum(t.qty) filter (where {variant_sql('it.name_th')} = 'เครื่องใน') / nullif(sum(t.qty), 0) s
+            from t_units t join mp_clean.items it on it.itemid = t.itemid
+            where t.{OPP_WIN} and t.channel in {INSTORE} and t.tree_category = 'main' and t.source = 'menu'
+              and {variant_sql('it.name_th')} is not null
+              and {family_sql('it.name_th')} in (select {family_sql('name_th')} from mp_clean.items
+                                                 where {variant_sql('name_th')} = 'ทรงเครื่อง')
+            group by 1, 2) k
+      where o.lever = 'tradeup' and k.location_id = o.location_id and k.channel = o.channel""")
+    build_dead_hours(cur)
+
+
+def _sql_list(xs) -> str:
+    return "(" + ",".join(f"'{x}'" for x in xs) + ")"
+
+
+def build_dead_hours(cur):
+    """One `dead_hours` row per branch (channel dine_in) in sales_web.opportunity, default target
+    DEAD_TARGET occupancy. Over the last OPP_DAYS full days, per branch x hour 10-20 (occupancy_hourly):
+      occ   = sum(seat_minutes) / (seats x 60 x open days)   [open days = dates with dine-in orders]
+      dwell = sum(dwell_min_sum) / sum(turns) for that hour (branch avg dwell when the hour has < 1
+              bill opened per open day — sparse hours like 20:00 have 8-min dwells)
+      persons/day needed = max(0, target - occ) x seats x 60 / dwell   (hours already >= target add 0)
+    ฿/day = sum(persons x avg ticket per head) (ticket/head = dine-in net / meals); ฿/month = ฿/day x
+    open days. Stored: current_rate = avg occupancy 10-20, target_used = target, meals_30d = persons per
+    month needed, value_per_unit_thb = ticket/head, uplift = ฿/month, note = contributing hours.
+    The UI card in section 2 recomputes the same thing for 40/50/60% over the selected range."""
+    cur.execute(f"""
+      insert into sales_web.opportunity
+      with od as (select location_id, count(distinct business_date) n from sales_web.tree_daily
+                  where {OPP_WIN} and channel = 'dine_in' and orders > 0 group by 1),
+      tk as (select location_id, sum(net_thb) / nullif(sum(main_units + set_units), 0) t
+             from sales_web.tree_daily where {OPP_WIN} and channel = 'dine_in' group by 1),
+      oh as (select o.location_id, o.hour, sum(o.seat_minutes) sm, sum(o.turns) tu, sum(o.dwell_min_sum) ds
+             from sales_web.occupancy_hourly o where o.{OPP_WIN} and o.hour between 10 and 20
+             group by 1, 2),
+      bd as (select location_id, sum(ds) / nullif(sum(tu), 0) d from oh group by 1),
+      h as (select oh.location_id, oh.hour, s.seats,
+                   oh.sm / (s.seats * 60.0 * od.n) occ,
+                   -- sparse hour (< 1 bill opened per open day, e.g. 20:00 at ~0.1/day with 8-min
+                   -- dwell) -> branch avg dwell, else a tiny dwell explodes the persons needed
+                   case when oh.tu >= od.n then oh.ds / oh.tu else bd.d end dw
+            from oh join sales_web.seats s using (location_id) join od using (location_id)
+            join bd using (location_id)
+            where s.seats > 0 and oh.location_id not in {_sql_list(DEAD_SKIP)}),
+      p as (select h.*, greatest({DEAD_TARGET} - occ, 0) * seats * 60 / nullif(dw, 0) pers from h)
+      select p.location_id, 'dine_in', 'dead_hours', round(avg(p.occ), 4), null, null, null, null,
+             {DEAD_TARGET}, null, round(sum(p.pers) * od.n), round(tk.t, 2),
+             round(sum(p.pers) * tk.t * od.n),
+             coalesce('hours ' || string_agg(p.hour::text, ',' order by p.hour) filter (where p.pers > 0), 'no hour below target')
+             || ' · ฿' || round(sum(p.pers) * tk.t) || '/day x ' || od.n || ' open days'
+      from p join od using (location_id) join tk using (location_id)
+      group by p.location_id, od.n, tk.t""")
+    cur.execute("select count(*) from sales_web.opportunity where lever = 'dead_hours'")
+    print(f"  dead_hours rows: {cur.fetchone()[0]}")
 
 
 # ---------- Step 6: Grab -> ERS match ----------
@@ -630,7 +895,9 @@ def build_occupancy(cur):
 
 BUILDERS = (build_tree, build_hourly, build_dwell, build_pax_trust, build_items, build_options,
             build_pairs, build_distributions, build_members, build_promo, build_calendar,
-            build_opportunity, build_grab_match, build_occupancy)
+            build_grab_match, build_occupancy,
+            # calculator v2 last: needs tree_daily + occupancy_hourly (dead hours) + set_incremental
+            build_set_incremental, build_pair_attach, build_opportunity)
 
 
 def check():

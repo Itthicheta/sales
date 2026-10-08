@@ -80,6 +80,7 @@ pre.msg { white-space:pre-wrap; font-family:inherit; font-size:13px; background:
 .tw { cursor:pointer; user-select:none; color:var(--accent); display:inline-block; width:16px; }
 .ind1 { padding-left:22px !important; } .ind2 { padding-left:42px !important; }
 .note { font-size:12px; color:var(--muted); margin:4px 0; }
+ol.pm { margin:8px 0 0; padding-left:22px; } ol.pm li { margin:4px 0; line-height:1.5; }
 #freshBtn { position:fixed; bottom:18px; right:18px; z-index:50; padding:10px 16px; border:0; border-radius:10px;
   background:#2a78d6; color:#fff; font:inherit; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.3); }
 /* trend block (section 1) */
@@ -368,12 +369,52 @@ const T = {
     "opp_lever": "ถ้า <b>{0}</b> ({1}) ขาย<b>{2}</b>ได้เท่า<b>{3}</b> ({4} ต่อมื้อหลัก จากตอนนี้ {5}) จะเพิ่ม ≈ <b>฿{6}/เดือน</b> (= {7} มื้อหลัก × {8} × ฿{9})",
     "t_opp": "(ข) โอกาสเพิ่มยอด (฿/เดือน)",
     "t_opp_tot": " — รวม ≈ ฿{0}/เดือน",
-    "t_opp_note": "คำนวณจาก 30 วันเต็มล่าสุด (ไม่ขึ้นกับช่วงวันที่) · ใช้ตัวกรองสาขา · คลิกแถวเพื่อดูคำอธิบาย · ตัวขับขายเพิ่ม (เครื่องเคียง/เครื่องดื่ม/ของหวาน/Sharing) ใช้ชั้นอัพเซล (ไม่นับตัวเลือกในเซต) · \"เซต\" = สัดส่วนเซตต่อมื้อหลัก × ราคาเซตเฉลี่ย",
+    "t_opp_note": "30 วันเต็มล่าสุด (ไม่ขึ้นกับช่วงวันที่) · ทานที่ร้าน และ กลับบ้าน แยกกัน (ไม่รวมเดลิเวอรี) · ใช้ตัวกรองสาขา · แสดง 10 อันดับแรก · คลิกแถวเพื่อดูคำอธิบาย · ตัวหนา = เป้าที่ใช้คำนวณ",
     "now": "ตอนนี้",
     "best": "ดีที่สุด (สาขา)",
     "main30": "มื้อหลัก/30วัน",
     "avg_price": "ราคาเฉลี่ย",
     "plus_month": "+฿/เดือน",
+    "opp_h_peer": "เป้า (เพื่อน)",
+    "opp_h_own": "เป้า (ตัวเองดีสุด)",
+    "opp_h_gap": "ช่องว่าง (pp)",
+    "opp_h_meals": "มื้อ/30วัน",
+    "opp_h_val": "฿/หน่วย",
+    "opp_nopeer": "ไม่มีเพื่อน",
+    "opp_wk": "สัปดาห์ของ {0}",
+    "opp_at": "ถึงเป้าแล้ว",
+    "opp_none": "ข้อมูลน้อย",
+    "opp_ppl": "คน",
+    "opp_bowls": "ชาม",
+    "opp_b_peer": "เป้าเพื่อน {0} ของ{1}",
+    "opp_b_own": "ดีสุดของตัวเอง {0} ช่วง 4 สัปดาห์ของ {1}",
+    "opp_x_lever": "ถ้า <b>{0}</b> ({1}) ขาย<b>{2}</b>ได้ <b>{3}</b> ต่อมื้อ (ตอนนี้ {4}; {5}) จะเพิ่ม ≈ <b>฿{6}/เดือน</b> (= {7} มื้อ × {8} pp × ฿{9}/ชิ้น ราคาเฉลี่ยของสาขา)",
+    "opp_x_bev": "ถ้า <b>{0}</b> ({1}) ชวนลูกค้าที่สั่งน้ำเปล่าให้เปลี่ยนเป็น<b>{2}</b> ได้ <b>{3}</b> ต่อมื้อ (ตอนนี้ {4}; {5}) จะเพิ่ม ≈ <b>฿{6}/เดือน</b> (= {7} มื้อ × {8} pp × ส่วนต่างราคาจากน้ำเปล่า ฿{9})",
+    "opp_x_trade": "ถ้า <b>{0}</b> ({1}) ชวนอัพเกรด<b>ธรรมดา → ทรงเครื่อง</b> ได้ <b>{3}</b> ของชามในเมนูที่มีทรงเครื่อง (ตอนนี้ {4}; {5}) จะเพิ่ม ≈ <b>฿{6}/เดือน</b> (= {7} ชาม × {8} pp × ส่วนต่างราคา ฿{9}) · เครื่องใน {10}% ของชามกลุ่มนี้ (ข้อมูลประกอบ ไม่ใช่ตัวขับ)",
+    "opp_x_set": "ถ้า <b>{0}</b> ({1}) ขาย<b>เซต</b>ได้ <b>{3}</b> ของมื้อ (ตอนนี้ {4}; {5}) จะเพิ่ม ≈ <b>฿{6}/เดือน</b> (= {7} มื้อ × {8} pp × ส่วนเพิ่มที่วัดได้ ฿{9}/เซต: บิลที่มีเซตจ่ายต่อคนมากกว่าบิลขนาดเดียวกันที่ไม่มีเซต ฿{10} · เฉลี่ย {11} คน และ {12} เซต ต่อบิล)",
+    "opp_x_dead": "ถ้า <b>{0}</b> เติมที่นั่งช่วงชั่วโมงเงียบ ({1}) ให้ถึง occupancy {2} ต้องมีลูกค้าเพิ่ม ≈ {3} คน/เดือน × ฿{4}/คน = <b>฿{5}/เดือน</b> — เป็นเพดานทางทฤษฎี (มูลค่าที่นั่งว่าง) ไม่ใช่เป้าที่ทำได้ทันที · เปลี่ยนเป้า 40/50/60% ได้ที่การ์ดในหัวข้อ 2",
+    "opp_x_at": "<b>{0}</b> ({1}) {2} ตอนนี้ {3} — เท่ากับหรือสูงกว่าทั้งเป้าเพื่อนและช่วงที่ดีที่สุดของตัวเองแล้ว",
+    "opp_x_none": "<b>{0}</b> ({1}) {2} ตอนนี้ {3} — ข้อมูลน้อยเกินไปที่จะตั้งเป้า",
+    "opp_tot_dead": " (ไม่รวมชั่วโมงเงียบ ซึ่งเป็นเพดาน ฿{0}/เดือน)",
+    "opp_method": "เป้า = ค่าที่ต่ำกว่าระหว่างสาขาเพื่อนอันดับ 2 (ออฟฟิศ ≥1,000 มื้อ) กับช่วง 4 สัปดาห์ที่ดีที่สุดของตัวเอง · มูลค่า: เครื่องดื่ม = ส่วนต่างราคาจากน้ำเปล่า · เซต = ส่วนเพิ่มที่วัดได้จริงต่อเซต · อัพเกรด = ส่วนต่างธรรมดา→ทรงเครื่อง",
+    "tradeup": "อัพเกรดทรงเครื่อง",
+    "dead_lever": "ชั่วโมงเงียบ",
+    "t_pairs_menu": "สคริปต์คู่เมนู",
+    "pm_note": "30 วันเต็มล่าสุด · ในร้าน (ทานที่ร้าน + กลับบ้าน) · % = บิลที่มีทั้งคู่ ÷ บิลที่มีเมนูหลักนั้น · เทียบกับสาขาออฟฟิศที่ทำได้ดีที่สุด (≥30 บิล) · ฿ = ช่องว่าง × บิลเมนูหลัก × ราคาเฉลี่ยของรายการ · 10 อันดับ (ไม่รวมพระราม 9 — ไม่มีสาขาเพื่อน)",
+    "pm_line": "<b>{0} + {1}</b>: {2} {3} · {4} {5} → ถ้า {4} ทำได้เท่า{2} = <b>+฿{6}/เดือน</b>",
+    "t_dead_val": "มูลค่าชั่วโมงเงียบ (เติมที่นั่งให้ถึงเป้า)",
+    "dead_target": "เป้า occupancy",
+    "dead_note": "ต่อสาขา ชั่วโมง 10–20 ในช่วงวันที่ที่เลือก · คนที่ต้องเพิ่ม = (เป้า − occupancy) × ที่นั่ง × 60 ÷ เวลานั่งของชั่วโมงนั้น (ชั่วโมงที่มีบิลน้อยกว่า 1 บิล/วัน ใช้เวลานั่งเฉลี่ยของสาขา) · ฿ = คน × ยอดเฉลี่ยต่อหัว (ทานที่ร้าน) · ฿/เดือน = ฿/วัน × วันเปิด (เทียบ 30 วัน) · ไม่นับชั่วโมงที่ถึงเป้าแล้ว",
+    "dead_hours_h": "ชั่วโมงที่ต่ำกว่าเป้า",
+    "dead_ppl": "คน/วัน",
+    "dead_tkt": "฿/หัว",
+    "dead_day": "฿/วัน",
+    "dead_month": "฿/เดือน",
+    "dead_none": "ทุกชั่วโมงถึงเป้าแล้ว",
+    "dead_r9": "วัดไม่ได้ — บิลทานที่ร้านเปิดและปิดพร้อมกัน",
+    "dead_tip": "occupancy {0} · เวลานั่ง {1} นาที · ต้องเพิ่ม {2} คน/วัน",
+    "dead_caveat": "เป็นเพดานทางทฤษฎี: บอกว่าที่นั่งว่างมีมูลค่าเท่าไร ไม่ใช่ยอดที่คาดว่าจะได้ · ค่าที่เป้า 50% (30 วันล่าสุด) อยู่ในตารางโอกาสหัวข้อ 3 ด้วย",
+    "w_dead": "{0}. {1} · ชั่วโมงเงียบ ({2} น.) → occupancy {3} ≈ +฿{4}/เดือน (เพดาน)\n",
     "party_line": "เดี่ยว {0} · คู่ {1} · กลุ่ม {2}",
     "t_party": "(ค) ขนาดกลุ่ม และ การกระจายยอดต่อบิล",
     "party_bills": "ขนาดกลุ่ม (บิล)",
@@ -500,7 +541,7 @@ const T = {
     "copy_btn": "📋 คัดลอกข้อความ",
     "copied": "คัดลอกแล้ว ✓",
     "w_head": "📊 Mama Pook · สรุปรายสัปดาห์ ({0} – {1})\n\n🎯 โอกาสเพิ่มยอด 3 อันดับ (฿/เดือน)\n",
-    "w_opp": "{0}. {1} · {2} · {3} {4} → {5} (เท่า{6}) ≈ +฿{7}/เดือน\n",
+    "w_opp": "{0}. {1} · {2} · {3} {4} → {5} ({6}) ≈ +฿{7}/เดือน\n",
     "w_low": "\n📉 วันที่ต่ำกว่าปกติมากที่สุด (7 วันล่าสุด)\n",
     "w_noexp": "– ไม่มีข้อมูลค่าปกติ\n",
     "w_day": "{0}. {1} {2} ({3}) ฿{4} vs ปกติ ฿{5} ({6}){7}\n",
@@ -781,12 +822,52 @@ const T = {
     "opp_lever": "If <b>{0}</b> ({1}) sold <b>{2}</b> like <b>{3}</b> ({4} per main occasion, now {5}) it would add ≈ <b>฿{6}/month</b> (= {7} main occasions × {8} × ฿{9})",
     "t_opp": "(b) Opportunity (฿/month)",
     "t_opp_tot": " — total ≈ ฿{0}/month",
-    "t_opp_note": "Based on the last 30 full days (ignores the date range) · uses the branch filter · click a row for the explanation · add-on levers (sides / drinks / desserts / sharing) use the upsell layer (in-set picks excluded) · \"Set\" = set share of main occasions × avg set price",
+    "t_opp_note": "Last 30 full days (ignores the date range) · dine-in and take-away separately (delivery excluded) · uses the branch filter · top 10 shown · click a row for the explanation · bold = the target used",
     "now": "Now",
     "best": "Best (branch)",
     "main30": "Main occasions / 30 days",
     "avg_price": "Avg price",
     "plus_month": "+฿/month",
+    "opp_h_peer": "Target (peer)",
+    "opp_h_own": "Target (own best)",
+    "opp_h_gap": "Gap (pp)",
+    "opp_h_meals": "Meals / 30 days",
+    "opp_h_val": "฿ / unit",
+    "opp_nopeer": "no peers",
+    "opp_wk": "week of {0}",
+    "opp_at": "at target",
+    "opp_none": "too little data",
+    "opp_ppl": "people",
+    "opp_bowls": "bowls",
+    "opp_b_peer": "peer target {0} at {1}",
+    "opp_b_own": "own best {0} in the 4 weeks from {1}",
+    "opp_x_lever": "If <b>{0}</b> ({1}) sold <b>{2}</b> at <b>{3}</b> per meal (now {4}; {5}) it would add ≈ <b>฿{6}/month</b> (= {7} meals × {8} pp × ฿{9} branch avg price)",
+    "opp_x_bev": "If <b>{0}</b> ({1}) converted water drinkers to <b>{2}</b> up to <b>{3}</b> per meal (now {4}; {5}) it would add ≈ <b>฿{6}/month</b> (= {7} meals × {8} pp × price step up from water ฿{9})",
+    "opp_x_trade": "If <b>{0}</b> ({1}) upgraded <b>regular → ทรงเครื่อง (deluxe)</b> to <b>{3}</b> of bowls in families that have a deluxe version (now {4}; {5}) it would add ≈ <b>฿{6}/month</b> (= {7} bowls × {8} pp × price difference ฿{9}) · offal (เครื่องใน) is {10}% of those bowls (info only, not a lever)",
+    "opp_x_set": "If <b>{0}</b> ({1}) sold <b>sets</b> at <b>{3}</b> of meals (now {4}; {5}) it would add ≈ <b>฿{6}/month</b> (= {7} meals × {8} pp × measured increment ฿{9}/set: bills with a set pay ฿{10} more per person than same-size bills without · avg {11} people and {12} sets per bill)",
+    "opp_x_dead": "If <b>{0}</b> filled its quiet hours ({1}) to {2} occupancy it would need ≈ {3} more people/month × ฿{4}/head = <b>฿{5}/month</b> — a theoretical ceiling (the value of empty seats), not a near-term target · change the 40/50/60% target on the section 2 card",
+    "opp_x_at": "<b>{0}</b> ({1}) {2} is at {3} — already at or above both the peer target and its own best 4 weeks",
+    "opp_x_none": "<b>{0}</b> ({1}) {2} is at {3} — too little data to set a target",
+    "opp_tot_dead": " (excluding quiet hours, a ceiling of ฿{0}/month)",
+    "opp_method": "Target = the lower of the 2nd-best peer branch (office, ≥1,000 meals) and the branch's own best 4 weeks · value: drinks = price step up from water · set = measured increment per set · upgrade = regular → deluxe price difference",
+    "tradeup": "Deluxe upgrade",
+    "dead_lever": "Quiet hours",
+    "t_pairs_menu": "Menu-pair scripts",
+    "pm_note": "Last 30 full days · in-store (dine-in + take-away) · % = bills with both ÷ bills with that main · compared with the best office branch (≥30 bills) · ฿ = gap × main bills × item avg price · top 10 (Rama 9 excluded — no peers)",
+    "pm_line": "<b>{0} + {1}</b>: {2} {3} · {4} {5} → if {4} matched {2} = <b>+฿{6}/month</b>",
+    "t_dead_val": "Quiet-hour value (fill seats to a target)",
+    "dead_target": "Occupancy target",
+    "dead_note": "Per branch, hours 10–20 over the selected range · people needed = (target − occupancy) × seats × 60 ÷ that hour's dwell (hours with < 1 bill/day use the branch avg dwell) · ฿ = people × avg ticket per head (dine-in) · ฿/month = ฿/day × open days (scaled to 30 days) · hours already at target add nothing",
+    "dead_hours_h": "Hours below target",
+    "dead_ppl": "People/day",
+    "dead_tkt": "฿/head",
+    "dead_day": "฿/day",
+    "dead_month": "฿/month",
+    "dead_none": "every hour at target",
+    "dead_r9": "Not measurable — dine-in bills are opened and closed together",
+    "dead_tip": "occupancy {0} · dwell {1} min · needs {2} more people/day",
+    "dead_caveat": "A theoretical ceiling: what the empty seats are worth, not a forecast · the 50% value (last 30 days) also sits in the section 3 opportunity table",
+    "w_dead": "{0}. {1} · quiet hours ({2}) → {3} occupancy ≈ +฿{4}/month (ceiling)\n",
     "party_line": "Solo {0} · pairs {1} · groups {2}",
     "t_party": "(c) Party size and ticket distribution",
     "party_bills": "Party size (bills)",
@@ -913,7 +994,7 @@ const T = {
     "copy_btn": "📋 Copy message",
     "copied": "Copied ✓",
     "w_head": "📊 Mama Pook · Weekly summary ({0} – {1})\n\n🎯 Top 3 opportunities (฿/month)\n",
-    "w_opp": "{0}. {1} · {2} · {3} {4} → {5} (match {6}) ≈ +฿{7}/month\n",
+    "w_opp": "{0}. {1} · {2} · {3} {4} → {5} ({6}) ≈ +฿{7}/month\n",
     "w_low": "\n📉 Days furthest below expected (last 7 days)\n",
     "w_noexp": "– No expected-value data\n",
     "w_day": "{0}. {1} {2} ({3}) ฿{4} vs expected ฿{5} ({6}){7}\n",
@@ -1015,7 +1096,7 @@ function applyLang() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   CH = {dine_in:t('ch_dine'), take_away:t('ch_take'), delivery:t('ch_deliv')};
   DP = {lunch:t('dp_lunch'), non_peak:t('dp_non'), dinner:t('dp_dinner')};
-  LEVER = {side:t('side'), bev_paid:t('bev_paid'), bev_premium:t('bev_prem'), dessert:t('dessert'), topping:t('sharing_long'), set:t('set')};
+  LEVER = {side:t('side'), bev_paid:t('bev_paid'), bev_premium:t('bev_prem'), dessert:t('dessert'), topping:t('sharing_long'), set:t('set'), tradeup:t('tradeup'), dead_hours:t('dead_lever')};
   DOW = t('dow');
   NO_GRAB = '<div class="card muted">' + t('no_grab') + '</div>';
   legStore = '<h3 class="leg">' + t('leg_store') + '</h3>'; legGrab = '<h3 class="leg grab">Grab</h3>';
@@ -1036,7 +1117,7 @@ let TRUST = new Map();      // 'loc|d' -> pax_trust row
 const F = {branches:new Set(), channel:'store', from:'', to:'', daytype:'all', preset:'30'};
 // per-section UI state
 const S = {open:new Set(), heat:'orders', heatU:'n', attachCh:'all', attMode:'all', optGroup:null, dish:null, gOptGroup:null, menuCat:'main',
-  item:null, combo:['', '', ''], opp:null, gmonth:null,
+  item:null, combo:['', '', ''], opp:null, gmonth:null, deadT:0.5,
   tHide:new Set(), tOpen:true, tRaw:false, tMet:'side', tMode:'all'};   // trend block
 
 // ---------------------------------------------------------------- helpers
@@ -1417,6 +1498,8 @@ function volumeStore() {
     table('<th>' + t('branch') + '</th>' + hours.map(x => `<th class="n">${x}:00</th>`).join(''), body, 'heat') + '</div>';
   // hourly seat occupancy (Point 2026-10-07, replaces the daypart utilization)
   h += occupancyCard();
+  // dead-hour value (Point 2026-10-08): persons/฿ needed to lift quiet hours to a target occupancy
+  h += deadCard();
   // (b) dead hours: revenue by hour, 16-20 band highlighted
   const byH = group(rs, r => r[a.hour]), totNet = sum(rs, r => r[a.net]);
   let hmax = 0; for (const [, v] of byH) hmax = Math.max(hmax, sum(v, r => r[a.net]));
@@ -1578,21 +1661,8 @@ function ticketStore() {
     '</span> <span class="seg">' + ATT_MODE.map(([k, l]) => `<button data-act="attmode" data-k="${k}" class="${md === k ? 'on' : ''}">${l}</button>`).join('') + '</span>' +
     '<div class="note">' + t('t_att_note') + '</div>' +
     table(th([t('branch'), [t('main_plus_set')], ...ATT.map(x => [x[1]])]), b, 'heat') + '</div>';
-  // (b) opportunity calculator
-  const o = A('opportunity');
-  const opAll = get('opportunity').filter(r => F.branches.has(r[o.loc])).sort((x, y) => (y[o.uplift] || 0) - (x[o.uplift] || 0));
-  const op = opAll.slice(0, 10);   // top 10 only (Point 2026-10-08)
-  const totUp = sum(opAll, r => r[o.uplift]);
-  let ob = '';
-  op.forEach(r => {
-    const key = r[o.loc] + '|' + r[o.channel] + '|' + r[o.lever], chL = esc(CH[r[o.channel]] || r[o.channel]), lvL = esc(LEVER[r[o.lever]] || r[o.lever]);
-    ob += `<tr class="click${S.opp === key ? ' sel' : ''}" data-act="opp" data-k="${esc(key)}"><td>${bn(r[o.loc])}</td><td>${chL}</td><td>${lvL}</td><td class="n">${pct(r[o.rate])}</td><td class="n">${pct(r[o.best_rate])} (${bn(r[o.best_loc])})</td><td class="n">${fmt(r[o.main30])}</td><td class="n">${fmt(r[o.price])}</td><td class="n"><b>+${fmt(r[o.uplift])}</b></td></tr>`;
-    if (S.opp === key) ob += `<tr class="sel"><td colspan="8">` + (r[o.lever] === 'set'
-      ? t('opp_set', bn(r[o.loc]), chL, bn(r[o.best_loc]), pct(r[o.best_rate]), pct(r[o.rate]), fmt(r[o.uplift]), fmt(r[o.main30]), pct(r[o.best_rate] - r[o.rate]), fmt(r[o.price]))
-      : t('opp_lever', bn(r[o.loc]), chL, lvL, bn(r[o.best_loc]), pct(r[o.best_rate]), pct(r[o.rate]), fmt(r[o.uplift]), fmt(r[o.main30]), pct(r[o.best_rate] - r[o.rate]), fmt(r[o.price]))) + '</td></tr>';
-  });
-  h += `<div class="card"><b>${t('t_opp')}</b>${t('t_opp_tot', fmt(totUp))}<div class="note">${t('t_opp_note')}</div>` +
-    table(th([t('branch'), t('channel'), t('lever'), [t('now')], [t('best')], [t('main30')], [t('avg_price')], [t('plus_month')]]), ob) + '</div>';
+  // (b) opportunity calculator v2 (Point 2026-10-08) + (b2) menu-pair scripts
+  h += oppCard() + pairCard();
   // (c) party size mix + ticket histogram
   const pa = A('party'), prs = rows('party', {ch});
   const PB = ['1', '2', '3-4', '5+', 'n/a'], PC = ['#2a78d6', '#5aa0e6', '#e6a028', '#c0392b', '#aaa'];
@@ -1612,6 +1682,118 @@ function ticketStore() {
     TB.map((k, i) => `<span><i style="background:${TC[i]}"></i>฿${k}</span>`).join('') + '</div>' +
     table(th([t('branch'), t('party_bills'), t('tkt_bills')]), pb) + '</div>';
   return h;
+}
+// ---- opportunity calculator v2 (feed `opportunity`, sales_tables.build_opportunity; Point 2026-10-08)
+// two targets per row: office peer (2nd-best, Rama 9 none) and own best 4 weeks; target = the smaller
+// one above current. Lever `dead_hours` = one row per branch (50% occupancy target, section 2 card).
+const ddmm = s => s ? s.slice(8, 10) + '/' + s.slice(5, 7) : '';
+const oppSorted = () => { const o = A('opportunity'); return get('opportunity').filter(r => F.branches.has(r[o.loc])).sort((x, y) => (y[o.uplift] || 0) - (x[o.uplift] || 0)); };
+function oppBasis(r) {   // which target was used, as text
+  const o = A('opportunity'), tg = r[o.target];
+  if (tg == null) return '';
+  if (r[o.peer] != null && Math.abs(r[o.peer] - tg) < 1e-9) return t('opp_b_peer', pct(r[o.peer]), bn(r[o.peer_loc]));
+  return t('opp_b_own', pct(r[o.own]), ddmm(r[o.own_win]));
+}
+function oppExplain(r) {
+  const o = A('opportunity'), lv = r[o.lever], chL = esc(CH[r[o.channel]] || r[o.channel]), lvL = esc(LEVER[lv] || lv);
+  const note = r[o.note] || '';
+  if (lv === 'dead_hours') {
+    const hrs = (note.match(/hours ([\d,]+)/) || [, ''])[1];
+    return t('opp_x_dead', bn(r[o.loc]), hrs.split(',').filter(Boolean).map(x => x + ':00').join(' '), pct(r[o.target], 0), fmt(r[o.meals30]), fmt(r[o.value]), fmt(r[o.uplift]));
+  }
+  if (r[o.target] == null) return t(r[o.peer] == null && r[o.own] == null ? 'opp_x_none' : 'opp_x_at', bn(r[o.loc]), chL, lvL, pct(r[o.rate]));
+  const a = [bn(r[o.loc]), chL, lvL, pct(r[o.target]), pct(r[o.rate]), oppBasis(r), fmt(r[o.uplift]), fmt(r[o.meals30]), fmt(r[o.gap_pp], 2), fmt(r[o.value])];
+  if (lv === 'tradeup') return t('opp_x_trade', ...a, (note.match(/เครื่องใน (\d+)%/) || [, '–'])[1]);
+  if (lv === 'set') {
+    const si = A('set_inc'), s = get('set_inc').find(x => x[si.loc] === r[o.loc]);
+    return t('opp_x_set', ...a, s ? fmt(s[si.diff]) : '–', s ? fmt(s[si.persons], 2) : '–', s ? fmt(s[si.sets], 2) : '–');
+  }
+  if (lv === 'bev_paid' || lv === 'bev_premium') return t('opp_x_bev', ...a);
+  return t('opp_x_lever', ...a);
+}
+function oppCard() {
+  const o = A('opportunity'), opAll = oppSorted(), op = opAll.slice(0, 10);   // top 10 only (Point 2026-10-08)
+  // headline total = ticket levers only; the dead-hours ceiling is a different kind of number (shown apart)
+  const totUp = sum(opAll.filter(r => r[o.lever] !== 'dead_hours'), r => r[o.uplift]), totDead = sum(opAll.filter(r => r[o.lever] === 'dead_hours'), r => r[o.uplift]);
+  let ob = '';
+  op.forEach(r => {
+    const key = r[o.loc] + '|' + r[o.channel] + '|' + r[o.lever], lv = r[o.lever], dead = lv === 'dead_hours';
+    const chL = esc(CH[r[o.channel]] || r[o.channel]), lvL = esc(LEVER[lv] || lv), tg = r[o.target];
+    const usedPeer = tg != null && r[o.peer] != null && Math.abs(r[o.peer] - tg) < 1e-9, usedOwn = tg != null && !usedPeer;
+    const peerC = dead ? '–' : r[o.peer] == null ? `<span class="muted">${t('opp_nopeer')}</span>` : `${pct(r[o.peer])} <span class="muted">${bn(r[o.peer_loc])}</span>`;
+    const ownC = dead ? `${pct(tg, 0)} <span class="muted">occupancy</span>` : r[o.own] == null ? '–' : `${pct(r[o.own])} <span class="muted">${t('opp_wk', ddmm(r[o.own_win]))}</span>`;
+    const flag = !dead && tg == null ? ` <span class="tag">${t(r[o.peer] == null && r[o.own] == null ? 'opp_none' : 'opp_at')}</span>` : '';
+    ob += `<tr class="click${S.opp === key ? ' sel' : ''}" data-act="opp" data-k="${esc(key)}"><td>${bn(r[o.loc])}</td><td>${chL}</td><td>${lvL}${flag}</td>` +
+      `<td class="n">${dead ? pct(r[o.rate], 0) : pct(r[o.rate])}</td><td class="n">${usedPeer ? '<b>' + peerC + '</b>' : peerC}</td><td class="n">${usedOwn || dead ? '<b>' + ownC + '</b>' : ownC}</td>` +
+      `<td class="n">${dead || r[o.gap_pp] == null ? '–' : fmt(r[o.gap_pp], 2)}</td><td class="n">${fmt(r[o.meals30])}${dead ? ' <span class="muted">' + t('opp_ppl') + '</span>' : lv === 'tradeup' ? ' <span class="muted">' + t('opp_bowls') + '</span>' : ''}</td>` +
+      `<td class="n">${fmt(r[o.value])}</td><td class="n"><b>+${fmt(r[o.uplift])}</b></td></tr>`;
+    if (S.opp === key) ob += `<tr class="sel"><td colspan="10">${oppExplain(r)}</td></tr>`;
+  });
+  return `<div class="card"><b>${t('t_opp')}</b>${t('t_opp_tot', fmt(totUp))}${totDead ? t('opp_tot_dead', fmt(totDead)) : ''}<div class="note">${t('t_opp_note')}</div>` +
+    table(th([t('branch'), t('channel'), t('lever'), [t('now')], [t('opp_h_peer')], [t('opp_h_own')], [t('opp_h_gap')], [t('opp_h_meals')], [t('opp_h_val')], [t('plus_month')]]), ob) +
+    `<div class="note muted">${t('opp_method')}</div></div>`;
+}
+// ---- menu-pair scripts (feed `pairs_menu`, sales_tables.build_pair_attach): main family x item,
+// rate = bills with both / bills with the main, last 30 full days, in-store channels summed.
+// For each selected office branch: gap vs the best OTHER office branch (both need >= 30 main bills);
+// ฿ = gap x the branch's main bills x item price. Rama 9 has no peers -> not scripted.
+function pairCard() {
+  if (!D.cols.pairs_menu) return '';
+  const p = A('pairs_menu'), all = get('pairs_menu'), fb = {}, ag = {};
+  for (const r of all) {   // family bills per loc (sum over channels; same for every item row of a loc|ch|fam)
+    fb[r[p.loc] + '|' + r[p.channel] + '|' + r[p.fam]] = r[p.bills_main];
+    const k = r[p.loc] + '|' + r[p.fam] + '|' + r[p.item], x = ag[k] || (ag[k] = {loc:r[p.loc], fam:r[p.fam], item:r[p.item], both:0, thb:0});
+    x.both += r[p.bills_both]; x.thb += (r[p.price] || 0) * r[p.bills_both];
+  }
+  const fam = {}; for (const [k, v] of Object.entries(fb)) { const [l, , f] = k.split('|'); fam[l + '|' + f] = (fam[l + '|' + f] || 0) + v; }
+  const MIN = 30, office = D.branches.map(b => b.id).filter(id => id !== 'rama9');
+  const byPair = group(Object.values(ag), x => x.fam + '|' + x.item), out = [];
+  for (const id of selBranches().filter(id => office.includes(id))) {
+    for (const [pk, xs] of byPair) {
+      const [f, it] = pk.split('|'), nb = fam[id + '|' + f] || 0; if (nb < MIN) continue;
+      const me = xs.find(x => x.loc === id), rate = me ? me.both / nb : 0;
+      let best = null;
+      for (const x of xs) { if (x.loc === id || !office.includes(x.loc)) continue; const n = fam[x.loc + '|' + f] || 0; if (n < MIN) continue; const r = x.both / n; if (!best || r > best.rate) best = {loc:x.loc, rate:r, price:x.thb / x.both}; }
+      if (!best || best.rate <= rate) continue;
+      const price = me && me.both ? me.thb / me.both : best.price;
+      out.push({id, f, it, rate, best, nb, v:(best.rate - rate) * nb * price});
+    }
+  }
+  out.sort((a, b) => b.v - a.v);
+  const lines = out.slice(0, 10).map(x => `<li>${t('pm_line', esc(x.f), esc(x.it), bn(x.best.loc), pct(x.best.rate, 0), bn(x.id), pct(x.rate, 0), fmt(x.v))}</li>`).join('');
+  return `<div class="card"><b>${t('t_pairs_menu')}</b><div class="note">${t('pm_note')}</div>` +
+    (lines ? `<ol class="pm">${lines}</ol>` : `<div class="muted">${t('no_data')}</div>`) + '</div>';
+}
+// ---- dead-hour value (section 2, under occupancy; Point 2026-10-08). Per branch x hour 10-20 over the
+// selected range: persons needed = max(0, target - occ) x seats x 60 / dwell(hour) [branch avg dwell when
+// the hour has < 1 bill opened per open day]; ฿ = persons x avg ticket/head (dine-in net / meals).
+// ฿/month = ฿/day x open days scaled to 30 calendar days. Same math as the `dead_hours` opportunity row
+// (fixed 50%, last 30 full days).
+function deadCard() {
+  if (!D.cols.occupancy) return '';
+  const T_ = S.deadT, ag = occAgg(), tr = A('tree'), trs = rows('tree', {ch:['dine_in']});
+  const end = F.to < maxDate() ? F.to : maxDate();
+  const span = Math.max(1, Math.round((new Date(end + 'T00:00:00Z') - new Date(F.from + 'T00:00:00Z')) / 864e5) + 1);
+  let body = '';
+  for (const id of selBranches()) {
+    const b = B[id], x = ag[id]; if (!x || !b.seats) continue;
+    if (id === 'rama9') { body += `<tr><td>${bn(id)}</td><td class="muted" colspan="5">${t('dead_r9')}</td></tr>`; continue; }
+    const lr = trs.filter(r => r[tr.loc] === id), tk = div(sum(lr, r => r[tr.net]), sum(lr, r => r[tr.main] + (r[tr.set] || 0)));
+    const allTu = OCC_H.reduce((s, hh) => s + (x.h[hh] ? x.h[hh].tu : 0), 0), allDs = OCC_H.reduce((s, hh) => s + (x.h[hh] ? x.h[hh].ds : 0), 0);
+    const bd = div(allDs, allTu); let ppl = 0; const hrs = [];
+    for (const hh of OCC_H) {
+      const c = x.h[hh]; if (!c) continue;
+      const occ = c.sm / (b.seats * 60 * x.days), dw = c.tu >= x.days ? c.ds / c.tu : bd;
+      if (occ >= T_ || !dw) continue;
+      const p = (T_ - occ) * b.seats * 60 / dw; ppl += p; hrs.push(`<span title="${esc(t('dead_tip', pct(occ, 0), fmt(dw, 0), fmt(p, 0)))}">${hh}:00</span>`);
+    }
+    const day = ppl * (tk || 0), month = day * x.days / span * 30;
+    body += `<tr><td>${bn(id)}</td><td class="muted">${hrs.join(' ') || t('dead_none')}</td><td class="n">${fmt(ppl, 0)}</td><td class="n">${fmt(tk)}</td><td class="n">${fmt(day)}</td><td class="n"><b>${fmt(month)}</b></td></tr>`;
+  }
+  const seg = '<span class="seg">' + [0.4, 0.5, 0.6].map(v => `<button data-act="deadt" data-k="${v}" class="${S.deadT === v ? 'on' : ''}">${pct(v, 0)}</button>`).join('') + '</span>';
+  return `<div class="card"><b>${t('t_dead_val')}</b> ${t('dead_target')} ${seg}<div class="note">${t('dead_note')}</div>` +
+    table(th([t('branch'), t('dead_hours_h'), [t('dead_ppl')], [t('dead_tkt')], [t('dead_day')], [t('dead_month')]]), body) +
+    `<div class="note muted">${t('dead_caveat')}</div></div>`;
 }
 function ticketGrab() {
   const k = A('grab.basket'), br = rows('grab.basket'), mc = A('grab.match_cov'), cr = rows('grab.match_cov');
@@ -1937,14 +2119,17 @@ function insightsBody() {
 
 // ================================================================ 8. weekly digest
 function renderWeekly() {
-  const o = A('opportunity');
-  const op = get('opportunity').filter(r => F.branches.has(r[o.loc])).sort((x, y) => (y[o.uplift] || 0) - (x[o.uplift] || 0)).slice(0, 3);
+  const o = A('opportunity'), op = oppSorted().slice(0, 3);   // calculator v2 table
   const end = D.data_through, start = addDays(end, -6);
   const c = A('calendar');
   const days = calDays(get('calendar').filter(r => F.branches.has(r[c.loc]) && STORE.includes(r[c.channel]) && r[c.d] >= start && r[c.d] <= end))
     .filter(x => x.gap != null).sort((x, y) => x.gap - y.gap).slice(0, 3);
   let m = t('w_head', start, end);
-  op.forEach((r, i) => { m += t('w_opp', i + 1, bnRaw(r[o.loc]), CH[r[o.channel]] || r[o.channel], LEVER[r[o.lever]] || r[o.lever], pct(r[o.rate]), pct(r[o.best_rate]), bnRaw(r[o.best_loc]), fmt(r[o.uplift])); });
+  const plain = h => h.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  op.forEach((r, i) => {
+    if (r[o.lever] === 'dead_hours') { const hrs = ((r[o.note] || '').match(/hours ([\d,]+)/) || [, ''])[1]; m += t('w_dead', i + 1, bnRaw(r[o.loc]), hrs, pct(r[o.target], 0), fmt(r[o.uplift])); return; }
+    m += t('w_opp', i + 1, bnRaw(r[o.loc]), CH[r[o.channel]] || r[o.channel], LEVER[r[o.lever]] || r[o.lever], pct(r[o.rate]), pct(r[o.target]), plain(oppBasis(r)), fmt(r[o.uplift]));
+  });
   m += t('w_low');
   if (!days.length) m += t('w_noexp');
   days.forEach((x, i) => { m += t('w_day', i + 1, bnRaw(x.loc), x.d, DOW[dowOf(x.d)], fmt(x.netE), fmt(x.exp), sgn(x.gap), (x.hol ? ' 🎌' : '') + (x.rain >= 1 ? ' 🌧' : '')); });
@@ -2176,6 +2361,7 @@ const ACT = {
   attch: k => { S.attachCh = k; render(); },
   attmode: k => { S.attMode = k; render(); },
   opp: k => { S.opp = S.opp === k ? null : k; render(); },
+  deadt: k => { S.deadT = +k; render(); },
   tchip: k => { S.tHide.has(k) ? S.tHide.delete(k) : S.tHide.add(k); render(); },
   topen: () => { S.tOpen = !S.tOpen; render(); },
   tsm: k => { S.tRaw = k === 'raw'; render(); },

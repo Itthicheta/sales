@@ -25,7 +25,7 @@ sales/
   migrations/010_sales_web_schema.sql   schema (applied 2026-10-06)
   migrations/011_seats_2026-10-07.sql   seats per branch + holidays (idempotent upsert)
   docs/plan-2026-10-06-sales-web.md     original implementation plan
-  docs/reports/2026-10-07-*.md          working reports (attach sources, tree categories, occupancy)
+  docs/reports/2026-10-0*-*.md          working reports (attach sources, tree categories, occupancy, opportunity v2)
 ```
 
 **Dependency on the backbone** (`~/mamapook-data`, github.com/Itthicheta/Mamapook-data):
@@ -63,8 +63,8 @@ is POS-native and already mirrored in the backbone.
 | # | Section | Contents |
 |---|---|---|
 | 1 | Driver Tree (live) | volume × ticket per daypart/channel/branch with working filters (branch / day-type / date range) · pax-trust strip (see below) |
-| 2 | Volume levers | hour × branch density heatmap with unit toggle (count / % of branch) · **hourly seat occupancy** heatmap + turns per seat per hour (see "Section 2 — volume (as built 2026-10-07)") · dead-hour revenue curve (is the 16:00-20:00 promo working?) · baseline-vs-actual anomaly (branch's own history as the baseline) · dwell by hour and by daypart |
-| 3 | Ticket levers | attach heatmap: category × channel × branch on per-MAIN-OCCASION denominator · beverage attach in 3 TIERS (water / paid / premium — Point: keep water in, the lever is tier CONVERSION, not exclusion) · PAID-OPTION attach (เกี๊ยวเพิ่ม/หมูเพิ่ม — is_paid_option; cheapest per-head lever, nobody measures it) · **OPPORTUNITY CALCULATOR: click any weak cell → "closing OCC bev gap to Silom's level = +฿X/month", ranked list = sales-meeting agenda** (centerpiece) · **TICKET & PARTY-SIZE DISTRIBUTIONS** (added 2026-10-06): histograms of bill total and pax, not just averages — solo / pair / group mix per branch × daypart, and spend-per-head by party-size bucket |
+| 2 | Volume levers | hour × branch density heatmap with unit toggle (count / % of branch) · **hourly seat occupancy** heatmap + turns per seat per hour (see "Section 2 — volume (as built 2026-10-07)") · **dead-hour value card** (40/50/60% target, 2026-10-08) · dead-hour revenue curve (is the 16:00-20:00 promo working?) · baseline-vs-actual anomaly (branch's own history as the baseline) · dwell by hour and by daypart |
+| 3 | Ticket levers | attach heatmap: category × channel × branch on per-MAIN-OCCASION denominator · beverage attach in 3 TIERS (water / paid / premium — Point: keep water in, the lever is tier CONVERSION, not exclusion) · PAID-OPTION attach (เกี๊ยวเพิ่ม/หมูเพิ่ม — is_paid_option; cheapest per-head lever, nobody measures it) · **OPPORTUNITY CALCULATOR v2 (2026-10-08, see "Section 3 — opportunity calculator v2"): top-10 table, two targets per row (office peer 2nd-best / own best 4 weeks), click a row → explanation sentence; ranked list = sales-meeting agenda** (centerpiece) · **MENU-PAIR SCRIPTS** card (main family + item gaps vs the best office branch) · **TICKET & PARTY-SIZE DISTRIBUTIONS** (added 2026-10-06): histograms of bill total and pax, not just averages — solo / pair / group mix per branch × daypart, and spend-per-head by party-size bucket |
 | 4 | Options & choices | choice share per modifier group per menu (เส้น split etc., branch deltas) · unpopular tail (<2% picks → menu simplification) · **topping ROUTE analysis: same topping as option vs standalone menu line — which route per branch, price parity check** · option-to-main lift |
 | 5 | Repeat & members | member attach at POS (~1% today — headroom), repeat frequency per phone, days-since-last-visit win-back list |
 | 6 | Menu & promo | **PER-MENU DRILL-DOWN** (click any menu → its sales trend, choice shares, attach, combos it sits in; a new item's launch ramp is read HERE, no separate launch scorecard) · **MENU ENGINEERING MATRIX** popularity × margin → stars / plowhorses / puzzles / dogs per branch (until the vendor cost fix lands, runs on popularity × price as an interim axis; switch to margin once cost data is trustworthy) · **COMBO/SET PERFORMANCE** (added 2026-10-06): set uptake vs à-la-carte for the same items, from SaleItemPackage + Package/PackageItems · 2-free-1 incremental read (derived promo tag exists) · combo simulator priced from basket data |
@@ -119,8 +119,8 @@ is POS-native and already mirrored in the backbone.
     **รวม** = all three · **อัพเซล** = menu + option · **ในเซต** = set. Denominator stays
     main + set. Tree shows รวม with "(ในเซต x%)"; section 3 heatmap toggles รวม/อัพเซล/ในเซต;
     section 6 shows units per route + card "เซตช่วยเพิ่ม attach ไหม".
-  - **Calculator uses อัพเซล** (units − set picks; price = that layer's ฿/unit) and **set is
-    its own lever** (`set` = set units ÷ (main + set) × avg set price). The paid-option
+  - **Calculator uses อัพเซล** (units − set picks) and **set is its own lever** — values and
+    targets superseded 2026-10-08 by calculator v2 (see "Section 3 — opportunity calculator v2"). The paid-option
     lever/column is removed (tree_daily.paid_option_* kept as deprecated zeros).
   - Option ฿ (paid_price × qty) also sits inside the parent line's gross — category ฿ is for
     unit prices only, never added to net.
@@ -174,6 +174,63 @@ is POS-native and already mirrored in the backbone.
     table %: solo diners at 2-seat tables (Silom 73 seats / 34 tables) make the room look full at ~60–70% seats. Rama9 can't be measured:
     ~90% of its dine-in bills are opened and closed within 3 min (counter-style keying) and are dropped.
     Report: docs/reports/2026-10-07-occupancy.md.
+- **Section 3 — opportunity calculator v2 (Point 2026-10-08; supersedes "best branch × avg price").**
+  Built by `build_set_incremental`, `build_pair_attach`, `build_opportunity` (+ `build_dead_hours`) in
+  tools/sales_tables.py, which run LAST in BUILDERS (they read tree_daily, occupancy_hourly, set_incremental).
+  - **Window:** last 30 full days (current_date-30 .. current_date-1); in-store channels **dine_in and
+    take_away as separate rows**; POS delivery dropped. A branch × channel row needs ≥ 100 meals.
+    meals = main + set units (`meals_30d`, was `main_units_30d`).
+  - **Peer group `office`** = every live branch except rama9 (`PEERLESS`). Rama 9 rows: peer_target NULL.
+    **Peer target** = the 2nd-highest rate among office branches with ≥ 1,000 meals in that channel
+    (`PEER_MIN_MEALS`); if fewer than 3 qualify (always the case for take-away), the highest OTHER office
+    branch. The peer pool also needs denominator ≥ 100 (matters for tradeup: take-away bases are 24–78
+    bowls → no target). `peer_best_loc` may be the branch itself (it is the 2nd-best) → then not above current.
+  - **Own-best target** = best rate in 28-day windows stepping 7 days back from yesterday inside the last 90
+    days (9 windows; a window needs denominator ≥ 100); `own_best_window` = that window's start date.
+  - **target_used** = the SMALLER of the two targets that are above current (conservative); none above →
+    uplift 0, note "already at target" (or "no target (sample too small)" when both are NULL). Row kept.
+  - **Levers / rate / value per unit:** rate = upsell-layer units ÷ meals unless stated.
+    side · dessert · topping (Sharing) → value = branch avg ฿/unit of the category (upsell layer, in-store);
+    bev_paid · bev_premium → value = **tier difference** = branch avg paid (premium) drink price − water
+    (H3 น้ำเปล่า list price ฿16.05) — the lever is conversion from water (≈ ฿8 paid, ≈ ฿51 premium);
+    **tradeup** (ธรรมดา → ทรงเครื่อง) → family = main item name minus menu code and trailing variant word
+    (ธรรมดา / เครื่องใน / ทรงเครื่อง; items without one are out of scope); rate = ทรงเครื่อง units ÷ all variant
+    units in families that HAVE a ทรงเครื่อง item (menu-line mains only); for this lever `meals_30d` holds that
+    bowl base; value = LIST price (mp_clean.items.retail_price_thb) ทรงเครื่อง − ธรรมดา per family, weighted by
+    the branch's units = ฿53.50 (every family has the same step). เครื่องใน share is reported in `note` (info only);
+    **set** → rate = sets ÷ meals; value = measured `sales_web.set_incremental.incremental_thb_per_set`.
+  - **sales_web.set_incremental**(location_id, set_bills, nonset_bills, incremental_thb_per_set, method,
+    diff_per_meal_thb, persons_per_set_bill, sets_per_set_bill): in-store bills of the last **90** full days
+    (sets are few), persons = bowls + sets, buckets 1 / 2 / 3-4 / 5+; per bucket net ฿ per meal WITH a set −
+    WITHOUT; weighted by set-bill count; × avg persons per set-bill **÷ avg sets per set-bill** (a set-bill
+    holds 1.1–1.4 sets, so this converts "per set-bill" to "per set"); floored at 0. 2026-10-08: ฿35–54/set
+    (Silom 34.6, Gaysorn 41.5, Sathorn 42.7, All Seasons 46.7, OCC 54.5); Rama 9 sells no sets (NULL).
+  - **dead_hours** row per branch (channel dine_in, not Rama 9 — occupancy unmeasurable): see section 2
+    dead-hour card; value at the default 50% target over the last 30 days; current_rate = avg occupancy
+    10–20, target_used = 0.5, meals_30d = persons/month needed, value = ticket/head, note = hours.
+    **It is a theoretical ceiling (฿2.7–3.4M/month per branch vs ≈ ฿0.7M actual in-store sales) and tops
+    the table and the section 8 top-3** — flagged to Point 2026-10-08; the UI headline total excludes it.
+  - Table `sales_web.opportunity` v2: location_id, channel, lever, current_rate, peer_target, peer_best_loc,
+    own_best, own_best_window, target_used, gap_pp, meals_30d, value_per_unit_thb, uplift_thb_month, note.
+    uplift = (target_used − current) × meals_30d × value. Feed `opportunity` cols [loc, channel, lever, rate,
+    peer, peer_loc, own, own_win, target, gap_pp, meals30, value, uplift, note]; feed `set_inc`.
+  - **UI (section 3 card b):** top 10 by uplift; columns สาขา · ช่องทาง · ตัวขับ · ตอนนี้ · เป้า (เพื่อน: x% สาขา) ·
+    เป้า (ตัวเองดีสุด: x%, สัปดาห์ของ dd/mm) · ช่องว่าง (pp) · มื้อ/30วัน · ฿/หน่วย · +฿/เดือน; the target used is
+    bold; click → sentence per lever type (generic / bev conversion / tradeup / set / dead_hours, TH+EN);
+    muted methodology note. Headline total = levers without dead_hours (dead-hours sum shown apart).
+  - **Menu-pair scripts (card b2):** `sales_web.pair_attach`(location_id, channel, main_family, item,
+    bills_main, bills_both, rate, item_price_thb): last 30 full days, in-store, per main family (as tradeup;
+    non-variant mains = code-less name) × side / paid-or-premium drink / dessert item (menu lines + merged
+    paid option picks; set picks and water out); rate = bills with both ÷ bills with the main. Feed
+    `pairs_menu` = top 300 rows per branch by bills_both. UI sums channels, compares each selected office
+    branch with the best OTHER office branch (both ≥ 30 main bills), ฿ = gap × main bills × item price,
+    lists the 10 biggest as "ต้มยำแห้ง + ซุปบ๊วย: สีลม 31% · OCC 18% → ถ้า OCC ทำได้เท่าสีลม = +฿X/เดือน".
+  - **Section 8 digest** reads the v2 table (top 3 by uplift; dead_hours rows get their own line).
+- **Section 2 — dead-hour value card (Point 2026-10-08)** under the occupancy card: per branch × hour 10–20
+  over the selected range, persons needed = max(0, target − occ) × seats × 60 ÷ dwell(hour) (dwell = branch
+  avg when the hour has < 1 bill opened per open day — 20:00 had 8-min dwells); ฿ = persons × ticket/head
+  (dine-in net ÷ meals); ฿/month = ฿/day × open days scaled to 30 calendar days; hours ≥ target excluded;
+  target select 40 / 50 / 60 % (state `S.deadT`, default 0.5). Rama 9 shown as not measurable.
 - Models = monthly insight layer, paired with weather + holidays + payday.
 - Build order: section 1+3 (+ pax-trust check) first — calculator is the
   payoff; then 2 (needs seats per branch from Point); rest follow.
@@ -362,7 +419,7 @@ Final-review rulings (2026-10-06):
   เสร็จสมบูรณ์ are not paid out yet (fees incomplete) — flagged as a note.
 - Grab 9.4 lost orders read feed grab.cancels (category 'other', status ยกเลิก); ฿ lost is an estimate =
   branch-month avg order value from grab_daily.
-- Opportunity drink price is per tier (tree_daily.bev_paid_thb / bev_premium_thb); water baht excluded.
+- (superseded 2026-10-08 by calculator v2: drink value = tier difference from water) Opportunity drink price was per tier.
 - party_size: pax > 20 on one order = keying junk -> bucket 'n/a'.
 - grab_match only links finalized, non-voided POS tabs (no match rather than a voided one).
 - Every Backbone session runs `set time zone 'Asia/Bangkok'` (shared/backbone.py), so current_date / now()

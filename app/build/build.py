@@ -137,9 +137,10 @@ def build():
                avg_dwell_min avg_min, avg_party
         from sales_web.dwell where business_date >= current_date - 90
         order by business_date, location_id, daypart""")
-    # hourly seat occupancy (2026-10-07, replaces the daypart utilization): dine-in only,
-    # occupancy % in the UI = sum(seat_min) / (seats x 60 x days); avg dwell by hour =
-    # dwell_sum / turns (dwell of orders OPENED in that hour). See sales_tables.build_occupancy.
+    # hourly seat occupancy (2026-10-07; 1-hour rule 2026-10-08): dine-in only, take-away-only bills
+    # excluded. Occupancy % in the UI = persons_opened / (seats x open days) (capacity = 1 person per
+    # seat per hour, dwell NOT used); seat_min / peak_persons = measured diagnostics (tooltip); avg dwell
+    # by hour = dwell_sum / turns, information only. See sales_tables.build_occupancy.
     data["occupancy"] = feed("occupancy", """
         select location_id loc, to_char(business_date,'YYYY-MM-DD') d, hour, seat_minutes seat_min,
                bills_open, turns,

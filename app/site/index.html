@@ -341,22 +341,19 @@ const T = {
     "v_occ": "ที่นั่งถูกใช้ รายชั่วโมง",
     "occ_row": "ที่นั่งถูกใช้",
     "turns_row": "รอบ/ที่นั่ง/ชม.",
-    "dwell_row": "เวลานั่งเฉลี่ย (นาที)",
-    "cap_row": "รองรับได้ (คน/ชม.)",
-    "served_row": "รับจริง (คนเปิดบิล/ชม.)",
-    "gap_row": "ส่วนต่าง (รองรับ − รับจริง)",
-    "queue": "คิว",
-    "occ_note3": "Occupancy เฉลี่ย = คน-นาทีที่นั่ง ÷ (ที่นั่ง × 60 × วันที่เปิด) · พีค = คนที่นั่งอยู่ ณ ต้นช่วง 10 นาทีที่แน่นที่สุดของชั่วโมง ÷ ที่นั่ง เฉลี่ยต่อวัน · คน = ชามหลัก + เซต · เวลานั่งจากเปิดบิล→ปิดบิล · รองรับได้ = ที่นั่ง × 60 ÷ เวลานั่ง · สี: เต็ม ≥80% / ปานกลาง 50–80% / ว่าง <50% ตามตัวเลขพีค (แสดงสูงสุด 100% ค่าจริงอยู่ใน tooltip) · แถบเวลานั่ง / รองรับได้ / รับจริง / ส่วนต่าง / รอบ และมูลค่าชั่วโมงว่าง ใช้ค่าเฉลี่ยทั้งชั่วโมง · พระราม 9 คีย์บิลตอนจ่ายเกือบทั้งหมด → ตัวเลขเป็นการประมาณการ",
-    "occ_note_pk": "ตัวเลขใหญ่ = 10 นาทีที่แน่นที่สุดของชั่วโมง · ตัวเลขเล็ก = เฉลี่ยทั้งชั่วโมง · บิลที่เปิด-ปิดภายใน 3 นาที (คีย์ตอนจ่าย) ประมาณเวลานั่งจากค่ากลางของสาขา",
+    "dwell_row": "เวลานั่งเฉลี่ย (นาที, ข้อมูล)",
+    "served_row": "รับจริง (คน/ชม.)",
+    "gap_row": "ส่วนต่าง (ที่นั่ง − รับจริง)",
     "occ_avg": "เฉลี่ย {0}",
-    "occ_tip_pk": "พีค 10 นาที (ค่าจริง) {0} · ช่วงที่พีคบ่อยสุด {1}\nคนที่นั่งอยู่ ณ พีค/วัน {2}",
+    "occ_tip_diag": "ที่นั่งถูกใช้จริง (วัดจากเวลานั่ง) พีค {0} · เฉลี่ย {1}",
+    "occ_seats": "({0} ที่นั่ง)",
     "occ_tip_imp": "บิลประมาณเวลานั่ง (คีย์ตอนจ่าย) {0} บิล · {1}/วัน",
     "occ_est": "ประมาณการ",
     "occ_est_tip": "{0} ของบิลคีย์ตอนจ่าย — เวลานั่งประมาณจากค่ากลางของสาขา",
-    "occ_note": "100% = ทุกที่นั่งถูกใช้ตลอดชั่วโมง · ชั่วโมงที่ ≥80% = เต็ม (คิวเกิดที่นี่ → ดูรอบต่อที่นั่ง/ชม. · เวลานั่งเฉลี่ย) · <50% = ว่าง (การตลาด)",
-    "occ_note2": "ที่นั่งถูกใช้ = คน × นาทีที่นั่ง (เปิดบิล → ปิดบิล, ทานที่ร้านเท่านั้น) ÷ (ที่นั่ง × 60) เฉลี่ยต่อวันที่เลือก · รอบ/ที่นั่ง/ชม. = บิลที่เปิดใหม่ในชั่วโมงนั้น ÷ ที่นั่ง — เต็มและรอบสูง = เต็มจริงมีคิว · เต็มแต่รอบต่ำ = นั่งนาน · คน = ชามหลัก + เซต ของแต่ละบิล (ไม่ใช้จำนวนลูกค้าที่คีย์ — 1 ชาม ≈ 1 คน) · บิลแยกจ่ายนับเวลาจากเปิดบิลแม่ · บิลอื่นที่เปิด-ปิดภายใน 3 นาที (คีย์ตอนจ่าย) เริ่มนั่ง = ปิดบิล − ค่ากลางเวลานั่งของสาขาในชั่วโมงนั้น (90 วัน)",
-    "occ_tip": "ที่นั่งถูกใช้ (ค่าจริง) {0}\nคน-นาทีเฉลี่ย/วัน {1}\nบิลที่เปิดอยู่/วัน {2}\nรอบ (บิลเปิดใหม่)/วัน {3}\nที่นั่ง {4} · {5} วัน",
-    "occ_over": "เกิน 100% = คีย์จำนวนคนเกิน หรือแชร์โต๊ะ",
+    "occ_note": "เต็ม 100% = ลูกค้า 1 คนต่อที่นั่งต่อชั่วโมง (รวมเวลาเก็บโต๊ะ/นั่งใหม่) · นับเฉพาะบิลทานที่ร้าน (ไม่รวมกลับบ้าน/Grab) · คน = ชามหลัก + เซต ในบิล · ตัวเลขวัดจากเวลานั่งจริงอยู่ใน tooltip",
+    "occ_note2": "ที่นั่งถูกใช้ = คนที่เปิดบิลในชั่วโมงนั้น ÷ ที่นั่ง เฉลี่ยต่อวันที่เปิด · สี: เต็ม ≥80% / ปานกลาง 50–80% / ว่าง <50% (แสดงสูงสุด 100% ค่าจริงอยู่ใน tooltip) · รับจริง = คนเปิดบิล/ชม. · ส่วนต่าง = ที่นั่ง − รับจริง · รอบ/ที่นั่ง/ชม. = บิลที่เปิดใหม่ ÷ ที่นั่ง · เวลานั่ง = ข้อมูลประกอบเท่านั้น (ไม่ใช้คำนวณ) · บิลแยกจ่ายนับที่ชั่วโมงเปิดบิลแม่ · บิลที่คีย์ตอนจ่าย (เปิด-ปิดภายใน 3 นาที) นับที่ ปิดบิล − ค่ากลางเวลานั่งของสาขา · พระราม 9 คีย์บิลตอนจ่ายเกือบทั้งหมด → ชั่วโมงเป็นการประมาณการ",
+    "occ_tip": "ที่นั่งถูกใช้ (ค่าจริง) {0}\nคนเปิดบิล/วัน {1}\nที่นั่ง {2} · {3} วัน",
+    "occ_over": "เกิน 100% = ลูกค้ามากกว่า 1 คนต่อที่นั่งในชั่วโมงนั้น (นั่งสั้นกว่า 1 ชม.)",
     "occ_mid": "50–79% ปานกลาง",
     "v_dwell_h": "เวลานั่งเฉลี่ย (นาที) ตามชั่วโมงที่เปิดบิล",
     "n_bills": "{0} บิล",
@@ -388,7 +385,7 @@ const T = {
     "dead_by_peer": "เพื่อน {0}",
     "dead_by_own": "ตัวเอง {0}",
     "dead_peer_btn": "เพื่อน",
-    "dead_note_peer": "ชั่วโมงนอกพีค 10, 11, 14, 15, 16, 20 น. · วันธรรมดา · 30 วันเต็มล่าสุด (ไม่ขึ้นกับช่วงวันที่) · เป้าแต่ละชั่วโมง = ค่าที่ต่ำกว่าระหว่างสาขาออฟฟิศอันดับ 2 (≥20 วันเปิด) กับช่วง 4 สัปดาห์ที่ดีที่สุดของตัวเองใน 90 วัน · คน = (เป้า − ตอนนี้) × ที่นั่ง × 60 ÷ เวลานั่ง · ฿ = คน × ยอดต่อหัว · ฿/เดือน = ฿/วัน × วันธรรมดาที่เปิด · ตัวเลขเดียวกับตารางโอกาสหัวข้อ 3",
+    "dead_note_peer": "ชั่วโมงนอกพีค 10, 11, 14, 15, 16, 20 น. · วันธรรมดา · 30 วันเต็มล่าสุด (ไม่ขึ้นกับช่วงวันที่) · เป้าแต่ละชั่วโมง = ค่าที่ต่ำกว่าระหว่างสาขาออฟฟิศอันดับ 2 (≥20 วันเปิด) กับช่วง 4 สัปดาห์ที่ดีที่สุดของตัวเองใน 90 วัน · occupancy = คนเปิดบิล ÷ ที่นั่ง (1 คน/ที่นั่ง/ชม.) · คน = (เป้า − ตอนนี้) × ที่นั่ง · ฿ = คน × ยอดต่อหัว · ฿/เดือน = ฿/วัน × วันธรรมดาที่เปิด · ตัวเลขเดียวกับตารางโอกาสหัวข้อ 3",
     "dead_month_wd": "฿/เดือน (วันธรรมดา)",
     "dead_ceiling": "เพดานสมมติ (what-if ceiling)",
     "opp_h_peer": "เป้า (เพื่อน)",
@@ -419,7 +416,7 @@ const T = {
     "pm_line": "<b>{0} + {1}</b>: {2} {3} · {4} {5} → ถ้า {4} ทำได้เท่า{2} = <b>+฿{6}/เดือน</b>",
     "t_dead_val": "มูลค่าชั่วโมงเงียบ (เติมที่นั่งให้ถึงเป้า)",
     "dead_target": "เป้า occupancy",
-    "dead_note": "ต่อสาขา ชั่วโมง 10–20 ในช่วงวันที่ที่เลือก · คนที่ต้องเพิ่ม = (เป้า − occupancy) × ที่นั่ง × 60 ÷ เวลานั่งของชั่วโมงนั้น (ชั่วโมงที่มีบิลน้อยกว่า 1 บิล/วัน ใช้เวลานั่งเฉลี่ยของสาขา) · ฿ = คน × ยอดเฉลี่ยต่อหัว (ทานที่ร้าน) · ฿/เดือน = ฿/วัน × วันเปิด (เทียบ 30 วัน) · ไม่นับชั่วโมงที่ถึงเป้าแล้ว",
+    "dead_note": "ต่อสาขา ชั่วโมง 10–20 ในช่วงวันที่ที่เลือก · occupancy = คนเปิดบิล ÷ ที่นั่ง (1 คน/ที่นั่ง/ชม.) · คนที่ต้องเพิ่ม = (เป้า − occupancy) × ที่นั่ง · ฿ = คน × ยอดเฉลี่ยต่อหัว (ทานที่ร้าน) · ฿/เดือน = ฿/วัน × วันเปิด (เทียบ 30 วัน) · ไม่นับชั่วโมงที่ถึงเป้าแล้ว",
     "dead_hours_h": "ชั่วโมงที่ต่ำกว่าเป้า",
     "dead_ppl": "คน/วัน",
     "dead_tkt": "฿/หัว",
@@ -427,7 +424,7 @@ const T = {
     "dead_month": "฿/เดือน",
     "dead_none": "ทุกชั่วโมงถึงเป้าแล้ว",
     "dead_r9": "วัดไม่ได้ — บิลทานที่ร้านเปิดและปิดพร้อมกัน",
-    "dead_tip": "occupancy {0} · เวลานั่ง {1} นาที · ต้องเพิ่ม {2} คน/วัน",
+    "dead_tip": "occupancy {0} · ต้องเพิ่ม {1} คน/วัน",
     "dead_caveat": "ไม่ใช่เป้า: ถ้าเติมทุกชั่วโมงให้ถึง 50% จะเท่ากับยอดขายหลายเท่าของยอดปัจจุบัน",
     "w_dead": "{0}. {1} · ชั่วโมงเงียบ (เทียบเพื่อน/ตัวเอง): {2} ≈ +฿{3}/เดือน\n",
     "party_line": "เดี่ยว {0} · คู่ {1} · กลุ่ม {2}",
@@ -807,22 +804,19 @@ const T = {
     "v_occ": "Seat occupancy by hour",
     "occ_row": "Occupied",
     "turns_row": "Turns / seat / hr",
-    "dwell_row": "Avg dwell (min)",
-    "cap_row": "Capacity (persons/hr)",
-    "served_row": "Served (persons opened/hr)",
-    "gap_row": "Gap (capacity − served)",
-    "queue": "queue",
-    "occ_note3": "Average occupancy = person-minutes seated ÷ (seats × 60 × open days) · peak = persons seated at the start of the busiest 10-minute slot of the hour ÷ seats, averaged over days · persons = main bowls + sets · dwell from bill open→close · capacity = seats × 60 ÷ dwell · colours: Full ≥80% / Medium 50–80% / Quiet <50% on the peak number (display capped at 100%, raw in tooltip) · the dwell / capacity / served / gap / turns strips and the dead-hour value use the hourly average · Rama 9 keys almost every bill at payment → its figures are estimates",
-    "occ_note_pk": "Big number = busiest 10 minutes of the hour · small number = whole-hour average · bills opened and closed within 3 min (keyed at payment) get an estimated seat time from the branch median",
+    "dwell_row": "Avg dwell (min, info)",
+    "served_row": "Served (persons/hr)",
+    "gap_row": "Gap (seats − served)",
     "occ_avg": "avg {0}",
-    "occ_tip_pk": "Peak 10 min (raw) {0} · most frequent peak slot {1}\nPersons seated at peak / day {2}",
+    "occ_tip_diag": "Measured seat use (from seat time) peak {0} · avg {1}",
+    "occ_seats": "({0} seats)",
     "occ_tip_imp": "Bills with estimated seat time (keyed at payment) {0} · {1}/day",
     "occ_est": "estimated",
     "occ_est_tip": "{0} of bills keyed at payment — seat time estimated from the branch median",
-    "occ_note": "100% = every seat used for the whole hour · hours ≥80% = full (queues form here → check turns per seat/hr · average dwell) · <50% = quiet (marketing)",
-    "occ_note2": "Occupancy = guests × minutes seated (bill opened → closed, dine-in only) ÷ (seats × 60), averaged over the selected days · Turns / seat / hr = bills opened in that hour ÷ seats — full with high turns = truly full with a queue · full with low turns = guests stay long · guests = main bowls + sets per bill (keyed pax is not used — 1 bowl ≈ 1 person) · split bills count from the master bill’s open time · other bills opened and closed within 3 min (keyed at payment) start at close − the branch’s median dwell for that hour (90 days)",
-    "occ_tip": "Occupancy (raw) {0}\nAvg guest-minutes / day {1}\nBills open / day {2}\nTurns (bills opened) / day {3}\nSeats {4} · {5} days",
-    "occ_over": "Over 100% = pax over-keyed or table sharing",
+    "occ_note": "Full 100% = 1 guest per seat per hour (including clearing / reseating) · dine-in bills only (no take-away / Grab) · persons = main bowls + sets on the bill · figures measured from actual seat time are in the tooltip",
+    "occ_note2": "Occupancy = persons whose bill opened in that hour ÷ seats, averaged over open days · colours: Full ≥80% / Medium 50–80% / Quiet <50% (display capped at 100%, raw in tooltip) · served = persons opened/hr · gap = seats − served · turns / seat / hr = bills opened ÷ seats · dwell = information only (not used in any calculation) · split bills count in the hour the master bill opened · bills keyed at payment (opened and closed within 3 min) count at close − the branch’s median dwell · Rama 9 keys almost every bill at payment → its hours are estimates",
+    "occ_tip": "Occupancy (raw) {0}\nPersons opened / day {1}\nSeats {2} · {3} days",
+    "occ_over": "Over 100% = more than 1 guest per seat that hour (stays shorter than 1 hour)",
     "occ_mid": "50–79% Medium",
     "v_dwell_h": "Average dwell (min) by hour the bill opened",
     "n_bills": "{0} bills",
@@ -854,7 +848,7 @@ const T = {
     "dead_by_peer": "peer {0}",
     "dead_by_own": "own best {0}",
     "dead_peer_btn": "Peer",
-    "dead_note_peer": "Off-peak hours 10, 11, 14, 15, 16, 20 · weekdays · last 30 full days (ignores the date range) · each hour's target = the lower of the 2nd-best office branch (≥20 open days) and the branch's own best 4 weeks in 90 days · people = (target − now) × seats × 60 ÷ dwell · ฿ = people × ticket per head · ฿/month = ฿/day × open weekdays · same number as the section 3 opportunity table",
+    "dead_note_peer": "Off-peak hours 10, 11, 14, 15, 16, 20 · weekdays · last 30 full days (ignores the date range) · each hour's target = the lower of the 2nd-best office branch (≥20 open days) and the branch's own best 4 weeks in 90 days · occupancy = persons opened ÷ seats (1 guest / seat / hour) · people = (target − now) × seats · ฿ = people × ticket per head · ฿/month = ฿/day × open weekdays · same number as the section 3 opportunity table",
     "dead_month_wd": "฿/month (weekdays)",
     "dead_ceiling": "what-if ceiling",
     "opp_h_peer": "Target (peer)",
@@ -885,7 +879,7 @@ const T = {
     "pm_line": "<b>{0} + {1}</b>: {2} {3} · {4} {5} → if {4} matched {2} = <b>+฿{6}/month</b>",
     "t_dead_val": "Quiet-hour value (fill seats to a target)",
     "dead_target": "Occupancy target",
-    "dead_note": "Per branch, hours 10–20 over the selected range · people needed = (target − occupancy) × seats × 60 ÷ that hour's dwell (hours with < 1 bill/day use the branch avg dwell) · ฿ = people × avg ticket per head (dine-in) · ฿/month = ฿/day × open days (scaled to 30 days) · hours already at target add nothing",
+    "dead_note": "Per branch, hours 10–20 over the selected range · occupancy = persons opened ÷ seats (1 guest / seat / hour) · people needed = (target − occupancy) × seats · ฿ = people × avg ticket per head (dine-in) · ฿/month = ฿/day × open days (scaled to 30 days) · hours already at target add nothing",
     "dead_hours_h": "Hours below target",
     "dead_ppl": "People/day",
     "dead_tkt": "฿/head",
@@ -893,7 +887,7 @@ const T = {
     "dead_month": "฿/month",
     "dead_none": "every hour at target",
     "dead_r9": "Not measurable — dine-in bills are opened and closed together",
-    "dead_tip": "occupancy {0} · dwell {1} min · needs {2} more people/day",
+    "dead_tip": "occupancy {0} · needs {1} more people/day",
     "dead_caveat": "Not a target: filling every hour to 50% would be several times current sales",
     "w_dead": "{0}. {1} · quiet hours (vs peer / own best): {2} ≈ +฿{3}/month\n",
     "party_line": "Solo {0} · pairs {1} · groups {2}",
@@ -1596,44 +1590,40 @@ function occupancyCard() {
   for (const id of selBranches()) {
     const b = B[id], x = ag[id]; if (!x) continue;
     if (!b.seats) { body += `<tr><td>${bn(id)}</td><td class="muted" colspan="${OCC_H.length}">${t('wait_seats')}</td></tr>`; continue; }
+    // HEADLINE (Point 2026-10-08, 1-hour rule): capacity = 1 person per seat per hour, so occupancy =
+    // persons whose dine-in bill OPENED in the hour / (seats x open days). Measured seat time (seat_min,
+    // peak 10-min slot) is a diagnostic in the tooltip only; dwell is never used for capacity.
+    const hasPk = A('occupancy').peak_persons != null;
     const occ = OCC_H.map(hh => {
       const c = x.h[hh], cls = occGrp(hh) + occGs(hh);
       if (!c) return `<td class="n ${cls}"></td>`;
-      // headline = peak 10-min slot (avg over open days of peak persons / seats); 2nd line = hourly average
-      const u = c.sm / (b.seats * 60 * x.days), hasPk = A('occupancy').peak_persons != null, pk = c.pk / (b.seats * x.days);
-      const ms = c.sc.indexOf(Math.max(...c.sc)), mm = m => String(m).padStart(2, '0');
-      const slot = hasPk && Math.max(...c.sc) > 0 ? `${hh}:${mm(ms * 10)}–${ms === 5 ? (hh + 1) + ':00' : hh + ':' + mm(ms * 10 + 10)}` : '–';
-      const tip = (hasPk ? t('occ_tip_pk', pct(pk, 0), slot, fmt(c.pk / x.days, 1)) + '\n' : '') +
-        t('occ_tip', pct(u, 0), fmt(c.sm / x.days), fmt(c.bo / x.days, 1), fmt(c.tu / x.days, 1), b.seats, x.days) +
-        (hasPk ? '\n' + t('occ_tip_imp', fmt(c.ib), fmt(c.ib / x.days, 1)) : '') + ((hasPk ? pk : u) > 1 ? '\n' + t('occ_over') : '');
-      if (!hasPk) return `<td class="n${occGs(hh)}" style="${occBg(u)}" title="${esc(tip)}">${pct(Math.min(u, 1), 0)}</td>`;
-      return `<td class="n${occGs(hh)}" style="${occBg(pk)}" title="${esc(tip)}"><span class="pk">${pct(Math.min(pk, 1), 0)}</span>` +
-        `<span class="avg">${t('occ_avg', pct(Math.min(u, 1), 0))}</span></td>`;
+      const u = c.po / (b.seats * x.days), mu = c.sm / (b.seats * 60 * x.days), pk = c.pk / (b.seats * x.days);
+      const tip = t('occ_tip', pct(u, 0), fmt(c.po / x.days, 1), b.seats, x.days) + '\n' +
+        t('occ_tip_diag', hasPk ? pct(pk, 0) : '–', pct(mu, 0)) +
+        (hasPk && c.ib ? '\n' + t('occ_tip_imp', fmt(c.ib), fmt(c.ib / x.days, 1)) : '') + (u > 1 ? '\n' + t('occ_over') : '');
+      return `<td class="n${occGs(hh)}" style="${occBg(u)}" title="${esc(tip)}">${pct(Math.min(u, 1), 0)}</td>`;
     }).join('');
     const turns = OCC_H.map(hh => { const c = x.h[hh]; return `<td class="n muted ${occGrp(hh)}${occGs(hh)}">${c ? fmt(c.tu / (b.seats * x.days), 2) : ''}</td>`; }).join('');
-    const dw = [], cp = [], sv = [], gp = [];
+    const dw = [], sv = [], gp = [];
     for (const hh of OCC_H) {
       const c = x.h[hh], k = occGrp(hh) + occGs(hh);
-      const d = c && c.tu ? c.ds / c.tu : null, cap = d ? b.seats * 60 / d : null, sd = c ? c.po / x.days : null;
-      const u = c ? c.sm / (b.seats * 60 * x.days) : 0, gap = cap != null ? cap - sd : null;
-      const q = gap != null && u >= 0.8 && gap <= 0.1 * cap;
-      dw.push(`<td class="n muted ${k}">${d ? fmt(d, 0) : ''}</td>`);
-      cp.push(`<td class="n muted ${k}">${cap ? fmt(cap, 0) : ''}</td>`);
+      const d = c && c.tu ? c.ds / c.tu : null, sd = c ? c.po / x.days : null, gap = c ? b.seats - sd : null;
       sv.push(`<td class="n muted ${k}">${c ? fmt(sd, 0) : ''}</td>`);
-      gp.push(`<td class="n ${k}" style="${gap == null ? '' : q ? 'background:rgba(200,60,50,.28)' : gap < 0.3 * cap ? 'background:rgba(230,160,40,.25)' : ''}" title="${q ? esc(t('queue')) : ''}">${gap == null ? '' : fmt(gap, 0) + (q ? ' ' + t('queue') : '')}</td>`);
+      gp.push(`<td class="n ${k}" style="${gap == null ? '' : gap <= 0.2 * b.seats ? 'background:rgba(230,160,40,.25)' : ''}">${gap == null ? '' : fmt(gap, 0)}</td>`);
+      dw.push(`<td class="n muted ${k}">${d ? fmt(d, 0) : ''}</td>`);
     }
     const strip = (lab, cells) => `<tr><td class="ind1 muted">${t(lab)}</td>${cells.join('')}</tr>`;
     const est = x.bo && (x.ib || 0) / x.bo > 0.5 ? ` <span class="muted" title="${esc(t('occ_est_tip', pct(x.ib / x.bo, 0)))}">(${t('occ_est')})</span>` : '';
-    body += `<tr><td><b>${bn(id)}</b>${est} <span class="muted">${t('occ_row')}</span></td>${occ}</tr>` +
-      strip('dwell_row', dw) + strip('cap_row', cp) + strip('served_row', sv) + strip('gap_row', gp) +
-      `<tr><td class="ind1 muted">${t('turns_row')}</td>${turns}</tr>`;
+    body += `<tr><td><b>${bn(id)}</b> <span class="muted">${t('occ_seats', b.seats)}</span>${est}</td>${occ}</tr>` +
+      strip('served_row', sv) + strip('gap_row', gp) +
+      `<tr><td class="ind1 muted">${t('turns_row')}</td>${turns}</tr>` + strip('dwell_row', dw);
   }
   if (!body) return '<div class="card"><b>' + t('v_occ') + '</b><div class="muted">' + t('no_data') + '</div></div>';
   const leg = '<div class="legend note">' + [[occBg(0.9), '≥80% ' + t('u_full')], [occBg(0.65), t('occ_mid')], [occBg(0.3), '&lt;50% ' + t('u_low')]]
     .map(([bg, l]) => `<span><i style="${bg}"></i>${l}</span>`).join('') + '</div>';
   return '<div class="card"><b>' + t('v_occ') + '</b>' + leg +
     `<table class="heat occ"><thead>${occHead()}</thead><tbody>${body}</tbody></table>` +
-    '<div class="note">' + t('occ_note_pk') + '</div><div class="note">' + t('occ_note') + '</div><div class="note">' + t('occ_note2') + '</div><div class="note">' + t('occ_note3') + '</div></div>';
+    '<div class="note">' + t('occ_note') + '</div><div class="note">' + t('occ_note2') + '</div></div>';
 }
 function dwellByHour() {
   if (!D.cols.occupancy) return '';
@@ -1812,7 +1802,7 @@ function deadHourList(loc) {
 }
 // ---- dead-hour card (section 2, under occupancy). Default mode 'peer' = the benchmarked number above
 // (same as the opportunity row). 40/50/60% = what-if CEILING over the selected range: persons needed =
-// max(0, target - occ) x seats x 60 / dwell(hour) [branch avg dwell when < 1 bill/day opened]; ฿ = persons x
+// max(0, target - occ) x seats (1-hour rule, occ = persons opened / seats); ฿ = persons x
 // ticket/head; ฿/month = ฿/day x open days scaled to 30 calendar days.
 function deadCard() {
   if (!D.cols.occupancy) return '';
@@ -1838,13 +1828,12 @@ function deadCard() {
     const b = B[id], x = ag[id]; if (!x || !b.seats) continue;
     if (id === 'rama9') { body += `<tr><td>${bn(id)}</td><td class="muted" colspan="5">${t('dead_r9')}</td></tr>`; continue; }
     const lr = trs.filter(r => r[tr.loc] === id), tk = div(sum(lr, r => r[tr.net]), sum(lr, r => r[tr.main] + (r[tr.set] || 0)));
-    const allTu = OCC_H.reduce((s, hh) => s + (x.h[hh] ? x.h[hh].tu : 0), 0), allDs = OCC_H.reduce((s, hh) => s + (x.h[hh] ? x.h[hh].ds : 0), 0);
-    const bd = div(allDs, allTu); let ppl = 0; const hrs = [];
-    for (const hh of OCC_H) {
+    let ppl = 0; const hrs = [];
+    for (const hh of OCC_H) {   // 1-hour rule: occ = persons opened / seats; persons needed = (T - occ) x seats
       const c = x.h[hh]; if (!c) continue;
-      const occ = c.sm / (b.seats * 60 * x.days), dw = c.tu >= x.days ? c.ds / c.tu : bd;
-      if (occ >= T_ || !dw) continue;
-      const p = (T_ - occ) * b.seats * 60 / dw; ppl += p; hrs.push(`<span title="${esc(t('dead_tip', pct(occ, 0), fmt(dw, 0), fmt(p, 0)))}">${hh}:00</span>`);
+      const occ = c.po / (b.seats * x.days);
+      if (occ >= T_) continue;
+      const p = (T_ - occ) * b.seats; ppl += p; hrs.push(`<span title="${esc(t('dead_tip', pct(occ, 0), fmt(p, 0)))}">${hh}:00</span>`);
     }
     const day = ppl * (tk || 0), month = day * x.days / span * 30;
     body += `<tr><td>${bn(id)}</td><td class="muted">${hrs.join(' ') || t('dead_none')}</td><td class="n">${fmt(ppl, 0)}</td><td class="n">${fmt(tk)}</td><td class="n">${fmt(day)}</td><td class="n">${fmt(month)}</td></tr>`;

@@ -79,6 +79,11 @@ is POS-native and already mirrored in the backbone.
   from the master bill's open time; 3–240 min filter; 10–20 h window.) Effect vs the old pax-based
   version (30 days): total seat-minutes +5% (OCC) to +17% (Silom); 12:00 weekday occupancy Silom
   52→64%, Gaysorn 31→36%, Sathorn 43→48%, All Seasons 61→65%, OCC 43→43%.
+- **Occupancy = 1 person per seat per hour (Point 2026-10-08, "1-hour rule"):** do NOT use measured
+  dwell for occupancy or capacity. Capacity (persons/hr) = seats; occupancy % = persons whose dine-in
+  bill opened in the hour ÷ seats (avg over open days). Measured seat time (person-minutes, peak
+  10-minute slot) is a tooltip diagnostic only; dwell is shown as information. Dead hours: persons
+  needed = (target − current) × seats. Dine-in bills whose main/set lines are all take-home are excluded.
 - **No. of customers:** staff-keyed pax (orders.pax) AND 1-main≈1-customer
   proxy both exist. Metric **bowls ÷ keyed customers** serves double duty:
   per-branch trust check (sane ≈ 0.9-1.3; outside → tree falls back to main
@@ -148,8 +153,26 @@ is POS-native and already mirrored in the backbone.
     seat_minutes = Σ persons × overlap minutes with the hour; bills_open = orders overlapping the hour;
     turns = orders OPENED in the hour; dwell_min_sum = their dwell (avg dwell by hour = dwell_min_sum ÷ turns).
     Payload feed `occupancy` cols [loc, d, hour, seat_min, bills_open, turns, dwell_sum, persons_opened], 90 days.
-    **LOCKED DEFINITION (Point 2026-10-07): Occupancy % (branch, hour) = Σ person-minutes seated in that
-    hour ÷ (seats × 60 × open days).** persons = main bowls + sets (min 1), never keyed pax; interval =
+    **HEADLINE DEFINITION — "1-hour rule" (Point 2026-10-08, replaces the person-minute headline):
+    capacity = seats persons/hour (1 person per seat per hour, incl. eating, clearing and reseating);
+    measured dwell is NOT used for capacity anywhere. Occupancy % (branch, hour) = Σ persons_opened ÷
+    (seats × open days)** — persons whose dine-in bill OPENED in that hour (persons = main bowls + sets,
+    min 1; split children count their own persons at the hour the MASTER opened; late-keyed bills at
+    their imputed open; bills with dwell > 240 min or splits < 3 min still count here, they are only
+    excluded from the seat-time diagnostics). Capped at 100 on screen (raw in tooltip), colours ≥ 80 full /
+    50–80 medium / < 50 quiet. TAKEAWAY GUARD: channel = dine_in AND not all main/set lines
+    is_take_home (mp_clean.order_lines; ~2 bills / 30 days). Card (2026-10-08): headline grid = persons ÷
+    seats; row label "สีลม (73 ที่นั่ง)"; strips = served (persons/hr), gap = seats − served (amber when
+    ≤ 20% of seats), turns/seat (bills opened ÷ seats), dwell (min, information only); the capacity
+    strip and the queue flag are gone. Tooltip = raw %, persons opened/day, seats, days, then the
+    diagnostic "ที่นั่งถูกใช้จริง (วัดจากเวลานั่ง) พีค xx% · เฉลี่ย xx%" and imputed bills. Notes (TH/EN):
+    "เต็ม 100% = ลูกค้า 1 คนต่อที่นั่งต่อชั่วโมง (รวมเวลาเก็บโต๊ะ/นั่งใหม่) · นับเฉพาะบิลทานที่ร้าน
+    (ไม่รวมกลับบ้าน/Grab) · คน = ชามหลัก + เซต ในบิล · ตัวเลขวัดจากเวลานั่งจริงอยู่ใน tooltip" + a formula note.
+    Weekday 30 days to 2026-10-07 at 12:00: Silom 75, All Seasons 71, OCC 72, Sathorn 67, Gaysorn 67,
+    Rama 9 11 (13:00 drops to 19–30% because lunch guests arrive at 12; see the occupancy report).
+    **DIAGNOSTIC (former locked definition, Point 2026-10-07, now tooltip only): measured occupancy =
+    Σ person-minutes seated in that hour ÷ (seats × 60 × open days)** (+ peak 10-minute slot below).
+    The rest of this paragraph and the 2026-10-08 addendum describe that diagnostic. persons = main bowls + sets (min 1), never keyed pax; interval =
     main bill opened → closed (split children inherit the master's open), fallback table session, drop
     < 3 or > 240 min; only the overlap with the hour counts (seat_minutes is computed with
     least/greatest overlap); seats = sales_web.seats (bar + stools included); **open days = distinct dates
@@ -195,7 +218,8 @@ is POS-native and already mirrored in the backbone.
     capped 100, raw in tooltip); small second line "เฉลี่ย xx% / avg xx%" = the locked hourly average.
     Colour thresholds apply to the peak number. Tooltip adds raw peak %, modal peak slot ("12:20–12:30"),
     persons at peak/day, imputed bills (total and /day). The dwell / capacity / served / gap / turns strips,
-    the queue flag and the dead-hour lever stay on the hourly-average basis (stated in note 3).
+    the queue flag and the dead-hour lever stayed on the hourly-average basis. SUPERSEDED the same day by
+    the 1-hour rule above: peak and hourly average are now tooltip diagnostics only.
     NB: avg-of-daily-peaks runs ~5–6 pp above the max-of-slot-averages figure (busiest slot averaged
     across days), because each day's peak lands on a different slot. Weekday 30 days to 2026-10-07, 12:00:
     peak Silom 82 / All Seasons 76 / OCC 64 / Sathorn 60 / Gaysorn 50 / Rama 9 10; slot-average max 75 /
@@ -238,14 +262,18 @@ is POS-native and already mirrored in the backbone.
     holiday, branch open = ≥ 1 dine-in order). Per hour: current = weekday occupancy, last 30 full days;
     peer = 2nd-highest office branch occupancy for that hour among branches with ≥ 20 open weekdays
     (< 3 qualify → highest other); own best = best 28-day window stepping 7 days in 90 days (window ≥ 15
-    open weekdays); target = smaller of the two above current. persons/day = (target − current) × seats ×
-    60 ÷ dwell(hour) (branch avg off-peak dwell if < 1 bill opened per open weekday); ฿/day = persons ×
+    open weekdays); target = smaller of the two above current. **1-hour rule (2026-10-08): occupancy =
+    persons_opened ÷ seats; persons/day = (target − current) × seats** (dwell_min kept in the table for
+    information only); ฿/day = persons ×
     ticket/head (dine-in net ÷ meals, 30 days); ฿/month = Σ hours ฿/day × open weekdays in the 30 days.
     Detail table `sales_web.dead_hours`(location_id, hour, occ, peer_target, peer_loc, own_best,
     own_best_window, target_used, dwell_min, persons_day, thb_day, open_days, ticket_thb) → feed
     `dead_hours`. Opportunity row: current_rate / peer_target / own_best = hourly averages, target_used =
     avg of hours with a target, gap_pp = avg gap, meals_30d = persons/month, value = ticket/head, note =
-    contributing hours. Rama 9 excluded (occupancy ~93% imputed — estimate only, 2026-10-08). 2026-10-08: ฿11k–63k/month per branch.
+    contributing hours. Rama 9 excluded (occupancy ~93% imputed — estimate only, 2026-10-08). 2026-10-08
+    (1-hour rule): Silom ฿20k, Sathorn ฿28k, Gaysorn ฿30k, OCC ฿55k, All Seasons ฿64k /month (was
+    ฿11k–64k on person-minutes); 11:00 now carries most of it (lunch arrivals start 11:30).
+    The section 2 what-if (40/50/60%) uses the same: persons = (T − persons_opened/seats) × seats.
     Digest: dead hours compete on this number only.
   - Table `sales_web.opportunity` v2: location_id, channel, lever, current_rate, peer_target, peer_best_loc,
     own_best, own_best_window, target_used, gap_pp, meals_30d, value_per_unit_thb, uplift_thb_month, note.
@@ -267,7 +295,7 @@ is POS-native and already mirrored in the backbone.
   **เพื่อน / Peer (DEFAULT)** · 40% · 50% · 60% (state `S.deadT`, 'peer' or a number). Peer mode = feed
   `dead_hours` (fixed last 30 days, weekdays, same number as the opportunity row) with a per-hour list
   "14:00 4.2%→6.0% (ตัวเอง 13/08) ฿477/วัน". 40/50/60% = **เพดานสมมติ (what-if ceiling)** over the selected
-  range: persons = max(0, target − occ) × seats × 60 ÷ dwell(hour) for hours 10–20, ฿ = persons ×
+  range: persons = max(0, target − occ) × seats (1-hour rule 2026-10-08, occ = persons opened ÷ seats) for hours 10–20, ฿ = persons ×
   ticket/head, ฿/month = ฿/day × open days scaled to 30 days; a bold line says filling every hour to 50%
   would be several times current sales, so it is not a target. Rama 9 shown as not measurable.
 - Models = monthly insight layer, paired with weather + holidays + payday.

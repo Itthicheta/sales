@@ -94,3 +94,48 @@ open late, or the floor is fuller than the POS shows.
 - Outside lunch, imputed bills at All Seasons and Sathorn run 8–9% (mostly off-peak), which lifts their
   off-peak averages slightly. Dead-hour lever after rebuild: ฿11k–64k/month (was ฿11k–63k).
 - Pipeline: build_occupancy 1.4 s; sales_tables.py total 12 s.
+
+## Addendum 2026-10-08 (2) — "1-hour rule" (Point)
+
+Measured dwell is no longer used for occupancy or capacity. **Capacity = seats persons/hour** (1 person per
+seat per hour, including eating, clearing and reseating). **Occupancy % = persons whose dine-in bill opened
+in that hour ÷ seats**, averaged over open days (persons = main bowls + sets, min 1; split children at the
+master's open hour; late-keyed bills at their imputed open; bills with dwell > 240 min now count too — 367
+such intervals in 180 days that were invisible before). Dine-in bills whose main/set lines are all
+`is_take_home` are excluded (takeaway guard). Person-minutes and the peak 10-minute slot stay as tooltip
+diagnostics ("ที่นั่งถูกใช้จริง (วัดจากเวลานั่ง) พีค xx% · เฉลี่ย xx%"). Card strips: served, gap = seats −
+served, turns/seat, dwell (info). Capacity strip and queue flag removed.
+
+### Weekdays, last 30 full days (22 open weekdays; Rama 9 17)
+| branch (seats) | hour | 1-hour rule | diag. peak | diag. avg | turns/seat | dwell |
+|---|---|---|---|---|---|---|
+| Silom (73) | 12 | **74.9** | 81.6 | 64.8 | 0.36 | 41 |
+| | 13 | 19.4 | 41.7 | 19.7 | 0.13 | 33 |
+| | 18 | 21.4 | 16.4 | 11.4 | 0.13 | 37 |
+| OCC (66) | 12 | **71.5** | 63.7 | 50.0 | 0.41 | 35 |
+| | 13 | 20.0 | 36.5 | 17.3 | 0.12 | 31 |
+| | 18 | 15.5 | 15.4 | 10.4 | 0.08 | 36 |
+| Sathorn (64) | 12 | **66.5** | 60.0 | 48.0 | 0.29 | 36 |
+| | 13 | 30.4 | 43.0 | 25.6 | 0.19 | 30 |
+| | 18 | 17.3 | 16.0 | 10.4 | 0.12 | 35 |
+| All Seasons (60) | 12 | **71.1** | 75.8 | 64.4 | 0.28 | 41 |
+| | 13 | 23.3 | 53.0 | 25.1 | 0.13 | 31 |
+| | 18 | 20.4 | 19.0 | 13.4 | 0.10 | 35 |
+| Gaysorn (54) | 12 | **67.4** | 49.7 | 36.1 | 0.39 | 33 |
+| | 13 | 29.5 | 35.0 | 19.5 | 0.16 | 33 |
+| | 18 | 21.5 | 18.9 | 11.6 | 0.12 | 36 |
+| Rama 9 (16, estimate) | 12 | 11.4 | 10.3 | 4.5 | 0.05 | 22 |
+| | 13 | 22.1 | 14.0 | 5.3 | 0.11 | 21 |
+
+### Dead hours (peer / own-best, weekdays, ฿/month) after the change
+Silom 19,971 · Sathorn 27,743 · Gaysorn 30,168 · OCC 54,801 · All Seasons 63,709 (Rama 9 excluded).
+Previously ฿11k–64k on person-minutes. 11:00 now carries most of the value (All Seasons 11:00 69.5% → own
+best 90.3% = ฿2,610/day) because lunch arrivals start at 11:30 and the 1-hour rule books them all in 11:00.
+
+### Odd things
+- 13:00 falls to 19–30% everywhere (the 12:xx arrivals are still seated but booked to 12:00). The
+  diagnostic peak at 13:00 is 35–53%, so the room is fuller than the headline at 13:00.
+- Gaysorn 12:00 jumps from 50 (peak) to 67: shorter stays (33 min) → more than one turn per seat-hour.
+- Rama 9 15:00 shows ~90% (14 persons/day on 16 seats, nearly all late-keyed and imputed) — estimate.
+- Takeaway guard removes 2 OCC bills in 30 days.
+- Pipeline: sales_tables.py 13 s, build.py 4 s, deploy 18 s.

@@ -743,14 +743,14 @@ def build_dead_hours(cur):
     replaces the fixed 50% target). Off-peak hours DEAD_HOURS (10, 11, 14, 15, 16, 20 — lunch 12-13 and
     dinner 17-19 excluded); WEEKDAYS only (Mon-Fri, not in sales_web.holidays, branch open = >= 1 dine-in
     order in tree_daily). Per branch x hour:
-      current   = occupancy over the last OPP_DAYS full days = sum(seat_minutes) / (seats x 60 x open weekdays)
+      current   = occupancy over the last OPP_DAYS full days = sum(persons_opened) / (seats x open weekdays)
+                  (1-hour rule, Point 2026-10-08: capacity = seats persons/hour, dwell not used)
       peer      = 2nd-highest office branch occupancy for that hour among office branches with
                   >= DEAD_PEER_MIN_DAYS open weekdays in the window (< 3 qualify -> highest OTHER office branch)
       own best  = best 28-day window (stepping 7 days, last OWN_BEST_DAYS days, window needs
                   >= DEAD_OWN_MIN_DAYS open weekdays)
       target    = the smaller of the two above current (none above -> hour adds 0)
-      persons/day = (target - current) x seats x 60 / dwell(hour)   [dwell = branch avg off-peak dwell when
-                  the hour has < 1 bill opened per open weekday]
+      persons/day = (target - current) x seats    [dwell_min is stored for information only]
       ฿/day = persons x ticket/head (dine-in net / meals, last OPP_DAYS days)
     ฿/month = sum over hours of ฿/day x open weekdays in the window (gap measured on weekdays, applied to
     weekdays only). Detail -> sales_web.dead_hours (feed dead_hours); one `dead_hours` row per branch ->
@@ -768,7 +768,7 @@ def build_dead_hours(cur):
                 and business_date not in (select d from sales_web.holidays)
                 and location_id not in {_sql_list(DEAD_SKIP)}
               group by 1, 2),
-            oh as (select o.location_id, o.business_date d, o.hour, o.seat_minutes sm, o.turns tu,
+            oh as (select o.location_id, o.business_date d, o.hour, o.persons_opened po, o.turns tu,
                           o.dwell_min_sum ds, s.seats
                    from sales_web.occupancy_hourly o
                    join od on od.location_id = o.location_id and od.d = o.business_date
@@ -778,7 +778,7 @@ def build_dead_hours(cur):
             bd as (select location_id, sum(ds) / nullif(sum(tu), 0) d from oh
                    where d >= current_date-{OPP_DAYS} group by 1),
             c as (select oh.location_id, oh.hour, max(oh.seats) seats, n30.n,
-                         sum(oh.sm) / (max(oh.seats) * 60.0 * n30.n) occ,
+                         sum(oh.po) / (max(oh.seats) * 1.0 * n30.n) occ,
                          case when sum(oh.tu) >= n30.n then sum(oh.ds) / sum(oh.tu) else max(bd.d) end dw
                   from oh join n30 using (location_id) join bd using (location_id)
                   where oh.d >= current_date-{OPP_DAYS} group by 1, 2, n30.n),
@@ -796,7 +796,7 @@ def build_dead_hours(cur):
             win as (select current_date - 1 - 7 * k e, current_date - 28 - 7 * k s
                     from generate_series(0, ({OWN_BEST_DAYS} - 28) / 7) k),
             nw as (select od.location_id, w.s, count(*) n from od join win w on od.d between w.s and w.e group by 1, 2),
-            wr as (select oh.location_id, oh.hour, w.s, sum(oh.sm) / (max(oh.seats) * 60.0 * max(nw.n)) occ
+            wr as (select oh.location_id, oh.hour, w.s, sum(oh.po) / (max(oh.seats) * 1.0 * max(nw.n)) occ
                    from oh join win w on oh.d between w.s and w.e
                    join nw on nw.location_id = oh.location_id and nw.s = w.s
                    where nw.n >= {DEAD_OWN_MIN_DAYS} group by 1, 2, 3),
@@ -809,8 +809,8 @@ def build_dead_hours(cur):
                   from c join peer p using (location_id, hour) left join own o using (location_id, hour)
                   join tk using (location_id))
             select location_id, hour, round(occ, 4), round(pt, 4), pl, round(ob, 4), obw, round(tu, 4),
-                   round(dw, 1), round(coalesce(tu - occ, 0) * seats * 60 / nullif(dw, 0), 2),
-                   round(coalesce(tu - occ, 0) * seats * 60 / nullif(dw, 0) * t, 2), n, round(t, 2)
+                   round(dw, 1), round(coalesce(tu - occ, 0) * seats, 2),
+                   round(coalesce(tu - occ, 0) * seats * t, 2), n, round(t, 2)
             from x""")
     cur.execute(f"""
       insert into sales_web.opportunity
@@ -907,9 +907,14 @@ def build_occupancy(cur):
     PEAK (Point 2026-10-08): the hourly average hides the ~30-min rush, so per branch-day-hour
     peak_persons = max over the six 10-minute slot starts hh:00, :10 .. :50 of persons seated at that
     instant (bills with open <= t < close), peak_slot = 0-5 of that max (earliest on ties).
-    UI (LOCKED 2026-10-07, peak 2026-10-08): headline % = avg over open days of peak_persons / seats,
-    second line = hourly average sum(seat_minutes) / (seats x 60 x open days), open days =
-    distinct dates in range with a dine-in row in the tree feed (orders > 0)."""
+    HEADLINE (Point 2026-10-08, "1-hour rule", replaces the measured headline): capacity = 1 person per
+    seat per hour (eating + clearing + reseating), so occupancy % = persons_opened / (seats x open days)
+    — persons whose dine-in bill OPENED in the hour (split children at their master's open, late-keyed
+    at the imputed open, bills with dwell > 240 min or split < 3 min still count here). Measured dwell is
+    NOT used for capacity anywhere. seat_minutes / peak_persons are kept as DIAGNOSTICS only (tooltip:
+    measured peak + average), computed on the 3-240 min intervals (sit). Open days = distinct dates in
+    range with a dine-in row in the tree feed (orders > 0). TAKEAWAY GUARD: dine-in bills whose
+    main/set lines are all is_take_home are excluded."""
     for c in ("persons_opened int", "imputed_bills int", "peak_persons numeric", "peak_slot smallint"):
         cur.execute(f"alter table if exists sales_web.occupancy_hourly add column if not exists {c}")
     cur.execute("drop table if exists t_occ_lv")
@@ -940,16 +945,23 @@ def build_occupancy(cur):
               join mp_clean.orders mo on mo.order_id = t.order_id
               left join ts on ts.order_id = t.order_id
               left join sp on sp.order_id = t.order_id
-              where t.channel = 'dine_in'),
-            nv as (   -- normal intervals
+              where t.channel = 'dine_in'
+                -- TAKEAWAY GUARD (Point 2026-10-08): a dine-in bill whose main/set lines are ALL
+                -- flagged is_take_home is really a take-away -> excluded from occupancy (~2 bills/30 d).
+                and not exists (select 1 from mp_clean.order_lines li
+                                where li.order_id = t.order_id and li.is_active and not li.is_special_line
+                                  and li.tree_category in ('main', 'set')
+                                having count(*) > 0 and bool_and(coalesce(li.is_take_home, false)))),
+            nv as (   -- non-late bills; sit = interval usable for seat time (3-240 min)
               select order_id, location_id, business_date, pu, s {BKK} sl, e {BKK} el,
-                     extract(epoch from e - s) / 60 dm
-              from iv where not late and e - s between interval '3 min' and interval '240 min'),
+                     extract(epoch from e - s) / 60 dm,
+                     e - s between interval '3 min' and interval '240 min' sit
+              from iv where not late and s is not null and e is not null),
             mh as (select location_id, extract(hour from sl)::int hr,
                           percentile_cont(0.5) within group (order by dm) med, count(*) n
-                   from nv where business_date >= current_date - {OCC_IMPUTE_DAYS} group by 1, 2),
+                   from nv where sit and business_date >= current_date - {OCC_IMPUTE_DAYS} group by 1, 2),
             ma as (select location_id, percentile_cont(0.5) within group (order by dm) med, count(*) n
-                   from nv where business_date >= current_date - {OCC_IMPUTE_DAYS} group by 1),
+                   from nv where sit and business_date >= current_date - {OCC_IMPUTE_DAYS} group by 1),
             lt as (   -- late-keyed: opened := closed - median dwell
               select iv.order_id, iv.location_id, iv.business_date, iv.pu, iv.e {BKK} el,
                      coalesce(case when mh.n >= {OCC_IMPUTE_MIN_HOUR} then mh.med end,
@@ -959,13 +971,13 @@ def build_occupancy(cur):
               left join mh on mh.location_id = iv.location_id and mh.hr = extract(hour from iv.s {BKK})
               left join ma on ma.location_id = iv.location_id
               where iv.late)
-        select order_id, location_id, business_date, pu, sl, el, dm, false imputed from nv
+        select order_id, location_id, business_date, pu, sl, el, dm, false imputed, sit from nv
         union all
-        select order_id, location_id, business_date, pu, el - dm * interval '1 min', el, dm, true from lt""")
+        select order_id, location_id, business_date, pu, el - dm * interval '1 min', el, dm, true, true from lt""")
     cur.execute("create index on t_occ_lv (location_id, business_date)")
     cur.execute("analyze t_occ_lv")
-    cur.execute("select imputed, count(*) from t_occ_lv group by 1 order by 1")
-    print("    intervals (imputed?, n):", cur.fetchall())
+    cur.execute("select imputed, sit, count(*) from t_occ_lv group by 1, 2 order by 1, 2")
+    print("    intervals (imputed?, sit?, n):", cur.fetchall())
     rebuild(cur, "occupancy_hourly",
         """location_id text, business_date date, hour int, seat_minutes numeric, bills_open int,
            turns int, dwell_min_sum numeric, persons_opened int, imputed_bills int,
@@ -980,10 +992,11 @@ def build_occupancy(cur):
             agg as (
               select g.location_id, g.business_date, g.h,
                      round(coalesce(sum(lv.pu * extract(epoch from least(lv.el, g.hs + interval '1 hour')
-                                                                 - greatest(lv.sl, g.hs)) / 60), 0), 1) sm,
-                     count(lv.order_id) bo,
-                     count(*) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour') tu,
-                     round(coalesce(sum(lv.dm) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0), 1) ds,
+                                                                 - greatest(lv.sl, g.hs)) / 60) filter (where lv.sit), 0), 1) sm,
+                     count(lv.order_id) filter (where lv.sit) bo,
+                     count(*) filter (where lv.sit and lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour') tu,
+                     round(coalesce(sum(lv.dm) filter (where lv.sit and lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0), 1) ds,
+                     -- persons_opened = HEADLINE (1-hour rule): ALL bills incl. dwell > 240 / split < 3 min
                      coalesce(sum(lv.pu) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0)::int po,
                      count(*) filter (where lv.imputed) ib
               from grid g
@@ -994,7 +1007,7 @@ def build_occupancy(cur):
               select g.location_id, g.business_date, g.h, k, coalesce(sum(lv.pu), 0) p
               from grid g cross join generate_series(0, 5) k
               left join t_occ_lv lv on lv.location_id = g.location_id and lv.business_date = g.business_date
-                          and lv.sl <= g.hs + k * interval '10 min' and lv.el > g.hs + k * interval '10 min'
+                          and lv.sit and lv.sl <= g.hs + k * interval '10 min' and lv.el > g.hs + k * interval '10 min'
               group by 1, 2, 3, 4),
             pk as (select distinct on (location_id, business_date, h) location_id, business_date, h, p, k
                    from sl order by location_id, business_date, h, p desc, k)

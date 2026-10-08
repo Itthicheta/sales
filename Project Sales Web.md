@@ -205,11 +205,21 @@ is POS-native and already mirrored in the backbone.
     WITHOUT; weighted by set-bill count; × avg persons per set-bill **÷ avg sets per set-bill** (a set-bill
     holds 1.1–1.4 sets, so this converts "per set-bill" to "per set"); floored at 0. 2026-10-08: ฿35–54/set
     (Silom 34.6, Gaysorn 41.5, Sathorn 42.7, All Seasons 46.7, OCC 54.5); Rama 9 sells no sets (NULL).
-  - **dead_hours** row per branch (channel dine_in, not Rama 9 — occupancy unmeasurable): see section 2
-    dead-hour card; value at the default 50% target over the last 30 days; current_rate = avg occupancy
-    10–20, target_used = 0.5, meals_30d = persons/month needed, value = ticket/head, note = hours.
-    **It is a theoretical ceiling (฿2.7–3.4M/month per branch vs ≈ ฿0.7M actual in-store sales) and tops
-    the table and the section 8 top-3** — flagged to Point 2026-10-08; the UI headline total excludes it.
+  - **dead_hours** row per branch (channel dine_in; coordinator ruling 2026-10-08 — SAME benchmark logic
+    as every lever, replaces the first fixed-50% version which gave ฿2.7–3.4M/month per branch): off-peak
+    hours **10, 11, 14, 15, 16, 20** (lunch 12–13 and dinner 17–19 excluded), **weekdays only** (Mon–Fri, not a
+    holiday, branch open = ≥ 1 dine-in order). Per hour: current = weekday occupancy, last 30 full days;
+    peer = 2nd-highest office branch occupancy for that hour among branches with ≥ 20 open weekdays
+    (< 3 qualify → highest other); own best = best 28-day window stepping 7 days in 90 days (window ≥ 15
+    open weekdays); target = smaller of the two above current. persons/day = (target − current) × seats ×
+    60 ÷ dwell(hour) (branch avg off-peak dwell if < 1 bill opened per open weekday); ฿/day = persons ×
+    ticket/head (dine-in net ÷ meals, 30 days); ฿/month = Σ hours ฿/day × open weekdays in the 30 days.
+    Detail table `sales_web.dead_hours`(location_id, hour, occ, peer_target, peer_loc, own_best,
+    own_best_window, target_used, dwell_min, persons_day, thb_day, open_days, ticket_thb) → feed
+    `dead_hours`. Opportunity row: current_rate / peer_target / own_best = hourly averages, target_used =
+    avg of hours with a target, gap_pp = avg gap, meals_30d = persons/month, value = ticket/head, note =
+    contributing hours. Rama 9 excluded (occupancy unmeasurable). 2026-10-08: ฿11k–63k/month per branch.
+    Digest: dead hours compete on this number only.
   - Table `sales_web.opportunity` v2: location_id, channel, lever, current_rate, peer_target, peer_best_loc,
     own_best, own_best_window, target_used, gap_pp, meals_30d, value_per_unit_thb, uplift_thb_month, note.
     uplift = (target_used − current) × meals_30d × value. Feed `opportunity` cols [loc, channel, lever, rate,
@@ -217,7 +227,7 @@ is POS-native and already mirrored in the backbone.
   - **UI (section 3 card b):** top 10 by uplift; columns สาขา · ช่องทาง · ตัวขับ · ตอนนี้ · เป้า (เพื่อน: x% สาขา) ·
     เป้า (ตัวเองดีสุด: x%, สัปดาห์ของ dd/mm) · ช่องว่าง (pp) · มื้อ/30วัน · ฿/หน่วย · +฿/เดือน; the target used is
     bold; click → sentence per lever type (generic / bev conversion / tradeup / set / dead_hours, TH+EN);
-    muted methodology note. Headline total = levers without dead_hours (dead-hours sum shown apart).
+    muted methodology note. Headline total = all rows (dead hours benchmarked like the rest).
   - **Menu-pair scripts (card b2):** `sales_web.pair_attach`(location_id, channel, main_family, item,
     bills_main, bills_both, rate, item_price_thb): last 30 full days, in-store, per main family (as tradeup;
     non-variant mains = code-less name) × side / paid-or-premium drink / dessert item (menu lines + merged
@@ -226,11 +236,13 @@ is POS-native and already mirrored in the backbone.
     branch with the best OTHER office branch (both ≥ 30 main bills), ฿ = gap × main bills × item price,
     lists the 10 biggest as "ต้มยำแห้ง + ซุปบ๊วย: สีลม 31% · OCC 18% → ถ้า OCC ทำได้เท่าสีลม = +฿X/เดือน".
   - **Section 8 digest** reads the v2 table (top 3 by uplift; dead_hours rows get their own line).
-- **Section 2 — dead-hour value card (Point 2026-10-08)** under the occupancy card: per branch × hour 10–20
-  over the selected range, persons needed = max(0, target − occ) × seats × 60 ÷ dwell(hour) (dwell = branch
-  avg when the hour has < 1 bill opened per open day — 20:00 had 8-min dwells); ฿ = persons × ticket/head
-  (dine-in net ÷ meals); ฿/month = ฿/day × open days scaled to 30 calendar days; hours ≥ target excluded;
-  target select 40 / 50 / 60 % (state `S.deadT`, default 0.5). Rama 9 shown as not measurable.
+- **Section 2 — dead-hour value card (2026-10-08)** under the occupancy card. Mode buttons
+  **เพื่อน / Peer (DEFAULT)** · 40% · 50% · 60% (state `S.deadT`, 'peer' or a number). Peer mode = feed
+  `dead_hours` (fixed last 30 days, weekdays, same number as the opportunity row) with a per-hour list
+  "14:00 4.2%→6.0% (ตัวเอง 13/08) ฿477/วัน". 40/50/60% = **เพดานสมมติ (what-if ceiling)** over the selected
+  range: persons = max(0, target − occ) × seats × 60 ÷ dwell(hour) for hours 10–20, ฿ = persons ×
+  ticket/head, ฿/month = ฿/day × open days scaled to 30 days; a bold line says filling every hour to 50%
+  would be several times current sales, so it is not a target. Rama 9 shown as not measurable.
 - Models = monthly insight layer, paired with weather + holidays + payday.
 - Build order: section 1+3 (+ pax-trust check) first — calculator is the
   payoff; then 2 (needs seats per branch from Point); rest follow.

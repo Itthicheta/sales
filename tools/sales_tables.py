@@ -79,7 +79,7 @@ DAYPART = f"""case when extract(hour from o.closed_at {BKK}) between 11 and 13 t
 TABLES = ["tree_daily", "hourly", "dwell", "pax_trust", "item_daily", "option_monthly",
           "option_by_dish", "topping_route", "pair_lift", "party_size", "ticket_hist",
           "members_monthly", "member_visits", "promo_daily", "set_monthly", "calendar_daily",
-          "opportunity", "grab_match", "occupancy_hourly", "set_incremental", "pair_attach"]
+          "opportunity", "grab_match", "occupancy_hourly", "set_incremental", "pair_attach", "dead_hours"]
 
 
 def rebuild(cur, table: str, ddl_cols: str, select_sql: str):
@@ -466,7 +466,9 @@ SET_INC_DAYS = 90        # set_incremental measurement window (sets are few: ~10
 PEER_MIN_MEALS = 1000    # peer qualifier: office branch with >= 1,000 meals (main+set) in the window
 OPP_MIN_MEALS = 100      # a branch x channel row needs >= 100 meals (also: own-best window minimum)
 PEERLESS = ("rama9",)    # peer group `office` = every live branch except these; they get peer_target NULL
-DEAD_TARGET = 0.5        # dead-hours default target occupancy (UI offers 40/50/60%)
+DEAD_HOURS = (10, 11, 14, 15, 16, 20)   # off-peak hours benchmarked (lunch 12-13 / dinner 17-19 excluded)
+DEAD_PEER_MIN_DAYS = 20  # dead-hours peer needs >= 20 open weekdays in the window
+DEAD_OWN_MIN_DAYS = 15   # an own-best 4-week window needs >= 15 open weekdays (max 20)
 DEAD_SKIP = ("rama9",)   # occupancy unmeasurable (counter-style keying, ~90% bills < 3 min)
 VARIANT_RE = r"\s(ธรรมดา|เครื่องใน|ทรงเครื่อง)\s*$"
 OPP_WIN = "business_date between current_date-%d and current_date-1" % OPP_DAYS
@@ -579,7 +581,8 @@ def build_opportunity(cur):
                                  units in that family (≈ ฿54)
       set                      = sales_web.set_incremental.incremental_thb_per_set (measured)
     uplift_thb_month = (target_used - current) x meals_30d x value_per_unit_thb.
-    Plus one `dead_hours` row per branch (channel dine_in): see build_dead_hours."""
+    Plus one `dead_hours` row per branch (channel dine_in, same peer / own-best logic per off-peak
+    hour): see build_dead_hours."""
     cur.execute("drop table if exists t_lev")
     cur.execute(f"""
       create temp table t_lev on commit drop as
@@ -735,42 +738,91 @@ def _sql_list(xs) -> str:
 
 
 def build_dead_hours(cur):
-    """One `dead_hours` row per branch (channel dine_in) in sales_web.opportunity, default target
-    DEAD_TARGET occupancy. Over the last OPP_DAYS full days, per branch x hour 10-20 (occupancy_hourly):
-      occ   = sum(seat_minutes) / (seats x 60 x open days)   [open days = dates with dine-in orders]
-      dwell = sum(dwell_min_sum) / sum(turns) for that hour (branch avg dwell when the hour has < 1
-              bill opened per open day — sparse hours like 20:00 have 8-min dwells)
-      persons/day needed = max(0, target - occ) x seats x 60 / dwell   (hours already >= target add 0)
-    ฿/day = sum(persons x avg ticket per head) (ticket/head = dine-in net / meals); ฿/month = ฿/day x
-    open days. Stored: current_rate = avg occupancy 10-20, target_used = target, meals_30d = persons per
-    month needed, value_per_unit_thb = ticket/head, uplift = ฿/month, note = contributing hours.
-    The UI card in section 2 recomputes the same thing for 40/50/60% over the selected range."""
+    """Dead hours on the SAME benchmark logic as every other lever (coordinator ruling 2026-10-08,
+    replaces the fixed 50% target). Off-peak hours DEAD_HOURS (10, 11, 14, 15, 16, 20 — lunch 12-13 and
+    dinner 17-19 excluded); WEEKDAYS only (Mon-Fri, not in sales_web.holidays, branch open = >= 1 dine-in
+    order in tree_daily). Per branch x hour:
+      current   = occupancy over the last OPP_DAYS full days = sum(seat_minutes) / (seats x 60 x open weekdays)
+      peer      = 2nd-highest office branch occupancy for that hour among office branches with
+                  >= DEAD_PEER_MIN_DAYS open weekdays in the window (< 3 qualify -> highest OTHER office branch)
+      own best  = best 28-day window (stepping 7 days, last OWN_BEST_DAYS days, window needs
+                  >= DEAD_OWN_MIN_DAYS open weekdays)
+      target    = the smaller of the two above current (none above -> hour adds 0)
+      persons/day = (target - current) x seats x 60 / dwell(hour)   [dwell = branch avg off-peak dwell when
+                  the hour has < 1 bill opened per open weekday]
+      ฿/day = persons x ticket/head (dine-in net / meals, last OPP_DAYS days)
+    ฿/month = sum over hours of ฿/day x open weekdays in the window (gap measured on weekdays, applied to
+    weekdays only). Detail -> sales_web.dead_hours (feed dead_hours); one `dead_hours` row per branch ->
+    sales_web.opportunity. Rama 9 (DEAD_SKIP) excluded: occupancy unmeasurable."""
+    hrs = ",".join(str(h) for h in DEAD_HOURS)
+    rebuild(cur, "dead_hours",
+        """location_id text, hour int, occ numeric, peer_target numeric, peer_loc text, own_best numeric,
+           own_best_window date, target_used numeric, dwell_min numeric, persons_day numeric,
+           thb_day numeric, open_days int, ticket_thb numeric""",
+        f"""with od as (   -- open weekdays per branch (last OWN_BEST_DAYS days)
+              select location_id, business_date d from sales_web.tree_daily
+              where channel = 'dine_in' and orders > 0
+                and business_date between current_date-{OWN_BEST_DAYS} and current_date-1
+                and extract(isodow from business_date) <= 5
+                and business_date not in (select d from sales_web.holidays)
+                and location_id not in {_sql_list(DEAD_SKIP)}
+              group by 1, 2),
+            oh as (select o.location_id, o.business_date d, o.hour, o.seat_minutes sm, o.turns tu,
+                          o.dwell_min_sum ds, s.seats
+                   from sales_web.occupancy_hourly o
+                   join od on od.location_id = o.location_id and od.d = o.business_date
+                   join sales_web.seats s on s.location_id = o.location_id
+                   where o.hour in ({hrs}) and s.seats > 0),
+            n30 as (select location_id, count(*) n from od where d >= current_date-{OPP_DAYS} group by 1),
+            bd as (select location_id, sum(ds) / nullif(sum(tu), 0) d from oh
+                   where d >= current_date-{OPP_DAYS} group by 1),
+            c as (select oh.location_id, oh.hour, max(oh.seats) seats, n30.n,
+                         sum(oh.sm) / (max(oh.seats) * 60.0 * n30.n) occ,
+                         case when sum(oh.tu) >= n30.n then sum(oh.ds) / sum(oh.tu) else max(bd.d) end dw
+                  from oh join n30 using (location_id) join bd using (location_id)
+                  where oh.d >= current_date-{OPP_DAYS} group by 1, 2, n30.n),
+            q as (select location_id, hour, occ,
+                         row_number() over (partition by hour order by occ desc) rk,
+                         count(*) over (partition by hour) nq
+                  from c where n >= {DEAD_PEER_MIN_DAYS} and location_id not in {_sql_list(PEERLESS)}),
+            peer as (
+              select c.location_id, c.hour,
+                     coalesce(q2.occ, (select q3.occ from q q3 where q3.hour = c.hour and q3.location_id <> c.location_id
+                                       order by q3.occ desc limit 1)) pt,
+                     coalesce(q2.location_id, (select q3.location_id from q q3 where q3.hour = c.hour
+                                       and q3.location_id <> c.location_id order by q3.occ desc limit 1)) pl
+              from c left join q q2 on q2.hour = c.hour and q2.rk = 2 and q2.nq >= 3),
+            win as (select current_date - 1 - 7 * k e, current_date - 28 - 7 * k s
+                    from generate_series(0, ({OWN_BEST_DAYS} - 28) / 7) k),
+            nw as (select od.location_id, w.s, count(*) n from od join win w on od.d between w.s and w.e group by 1, 2),
+            wr as (select oh.location_id, oh.hour, w.s, sum(oh.sm) / (max(oh.seats) * 60.0 * max(nw.n)) occ
+                   from oh join win w on oh.d between w.s and w.e
+                   join nw on nw.location_id = oh.location_id and nw.s = w.s
+                   where nw.n >= {DEAD_OWN_MIN_DAYS} group by 1, 2, 3),
+            own as (select distinct on (location_id, hour) location_id, hour, occ, s
+                    from wr order by location_id, hour, occ desc, s desc),
+            tk as (select location_id, sum(net_thb) / nullif(sum(main_units + set_units), 0) t
+                   from sales_web.tree_daily where {OPP_WIN} and channel = 'dine_in' group by 1),
+            x as (select c.*, p.pt, p.pl, o.occ ob, o.s obw, tk.t,
+                         least(case when p.pt > c.occ then p.pt end, case when o.occ > c.occ then o.occ end) tu
+                  from c join peer p using (location_id, hour) left join own o using (location_id, hour)
+                  join tk using (location_id))
+            select location_id, hour, round(occ, 4), round(pt, 4), pl, round(ob, 4), obw, round(tu, 4),
+                   round(dw, 1), round(coalesce(tu - occ, 0) * seats * 60 / nullif(dw, 0), 2),
+                   round(coalesce(tu - occ, 0) * seats * 60 / nullif(dw, 0) * t, 2), n, round(t, 2)
+            from x""")
     cur.execute(f"""
       insert into sales_web.opportunity
-      with od as (select location_id, count(distinct business_date) n from sales_web.tree_daily
-                  where {OPP_WIN} and channel = 'dine_in' and orders > 0 group by 1),
-      tk as (select location_id, sum(net_thb) / nullif(sum(main_units + set_units), 0) t
-             from sales_web.tree_daily where {OPP_WIN} and channel = 'dine_in' group by 1),
-      oh as (select o.location_id, o.hour, sum(o.seat_minutes) sm, sum(o.turns) tu, sum(o.dwell_min_sum) ds
-             from sales_web.occupancy_hourly o where o.{OPP_WIN} and o.hour between 10 and 20
-             group by 1, 2),
-      bd as (select location_id, sum(ds) / nullif(sum(tu), 0) d from oh group by 1),
-      h as (select oh.location_id, oh.hour, s.seats,
-                   oh.sm / (s.seats * 60.0 * od.n) occ,
-                   -- sparse hour (< 1 bill opened per open day, e.g. 20:00 at ~0.1/day with 8-min
-                   -- dwell) -> branch avg dwell, else a tiny dwell explodes the persons needed
-                   case when oh.tu >= od.n then oh.ds / oh.tu else bd.d end dw
-            from oh join sales_web.seats s using (location_id) join od using (location_id)
-            join bd using (location_id)
-            where s.seats > 0 and oh.location_id not in {_sql_list(DEAD_SKIP)}),
-      p as (select h.*, greatest({DEAD_TARGET} - occ, 0) * seats * 60 / nullif(dw, 0) pers from h)
-      select p.location_id, 'dine_in', 'dead_hours', round(avg(p.occ), 4), null, null, null, null,
-             {DEAD_TARGET}, null, round(sum(p.pers) * od.n), round(tk.t, 2),
-             round(sum(p.pers) * tk.t * od.n),
-             coalesce('hours ' || string_agg(p.hour::text, ',' order by p.hour) filter (where p.pers > 0), 'no hour below target')
-             || ' · ฿' || round(sum(p.pers) * tk.t) || '/day x ' || od.n || ' open days'
-      from p join od using (location_id) join tk using (location_id)
-      group by p.location_id, od.n, tk.t""")
+      select location_id, 'dine_in', 'dead_hours',
+             round(avg(occ), 4), round(avg(peer_target), 4), null, round(avg(own_best), 4), null,
+             round(avg(target_used) filter (where target_used is not null), 4),
+             round(100 * avg(target_used - occ) filter (where target_used is not null), 2),
+             round(sum(persons_day) * max(open_days)), max(ticket_thb),
+             round(sum(thb_day) * max(open_days)),
+             coalesce('hours ' || string_agg(hour::text, ',' order by hour) filter (where thb_day > 0),
+                      'already at target')
+             || ' · ' || max(open_days) || ' open weekdays'
+      from sales_web.dead_hours group by location_id""")
     cur.execute("select count(*) from sales_web.opportunity where lever = 'dead_hours'")
     print(f"  dead_hours rows: {cur.fetchone()[0]}")
 

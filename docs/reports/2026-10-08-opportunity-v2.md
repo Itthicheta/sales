@@ -69,3 +69,48 @@ Also: "ก๋วยเตี๋ยวคอหมู + ซุปบ๊วย: �
 - Dead hours: an hour with < 1 bill opened per open day uses the branch avg dwell. Without this, 20:00 had 8-min dwells and the people needed exploded. Rama 9 is excluded.
 - Pair scripts leave out water-tier drinks and set picks. Channels are summed in the UI. Each branch is compared with the best OTHER office branch, with ≥ 30 main bills on both sides. Rama 9 is not scripted because it has no peers. `pair_attach` has an extra `item_price_thb` column.
 - The UI headline total excludes dead hours.
+
+---
+
+## Addendum: coordinator ruling on dead hours (same day)
+The fixed-50% dead-hours row is replaced. Dead hours now use the **same benchmark logic** as every other lever:
+- off-peak hours 10, 11, 14, 15, 16, 20 (lunch 12–13 and dinner 17–19 excluded)
+- weekdays only
+- target = the smaller of the two benchmarks that is above current:
+  - peer: the 2nd-highest office branch for that hour, among branches with ≥ 20 open weekdays
+  - own best: the branch's best rolling 4 weeks in 90 days (a window needs ≥ 15 open weekdays)
+- persons = (target − current) × seats × 60 ÷ dwell; ฿ = persons × ticket/head; × 22 open weekdays
+
+Per-hour detail is in `sales_web.dead_hours` (feed `dead_hours`). The section 2 card defaults to **เพื่อน / Peer**. 40/50/60% remain as **เพดานสมมติ (what-if ceiling)**, with a "not a target" line. The digest ranks dead hours on the peer number only, and the headline total is again the sum of all rows (฿231k/month).
+
+Decisions on top of the ruling:
+- Current occupancy is weekday-only, to match the weekday target.
+- ฿/month multiplies by **open weekdays** (22) only, not all open days.
+- Own-best windows need ≥ 15 open weekdays (a 4-week window holds at most 20).
+- Peer qualification is ≥ 20 open weekdays in the 30-day window (every office branch had 22).
+
+### Dead hours ฿/month per branch (peer logic, weekdays)
+| Branch | ฿/month | People/month | Main driver |
+|---|---|---|---|
+| All Seasons | **62,752** | 300 | 11:00, 20.0% → 30.3% (own best, 4 weeks from 20/08) = ฿2,046/day |
+| Gaysorn | **36,373** | 177 | 14:00, 8.8% → 12.5% (own, 06/08); 11:00, 8.6% → 11.6% (own) |
+| Silom | **34,566** | 165 | 14:00, 4.2% → 6.0% (own); 16:00, 2.1% → 3.9% (peer Sathorn) |
+| OCC | **16,504** | 83 | 11:00, 11.5% → 13.3% (peer Sathorn); 20:00 already at target |
+| Sathorn | **11,013** | 50 | 11:00, 13.3% → 14.5% (own) |
+| Rama 9 | excluded | | |
+
+Every branch is under ฿150k, so no hour breakdown is required. The full per-hour list is in the section 2 card and in each row's explanation.
+
+### New top 10 (+฿/month)
+| # | Branch | Lever | Now | Peer target | Own best | Value | +฿/month |
+|---|---|---|---|---|---|---|---|
+| 1 | All Seasons | dead hours | 5.9% (hourly average) | 5.2% (hourly average) | 8.2% (hourly average) | ฿209/head × 300 people | 62,752 |
+| 2 | Gaysorn | dead hours | 5.5% | 5.2% | 7.2% | ฿206 × 177 | 36,373 |
+| 3 | Silom | dead hours | 4.1% | 5.2% | 5.6% | ฿210 × 165 | 34,566 |
+| 4 | OCC | dead hours | 4.2% | 5.2% | 5.0% | ฿200 × 83 | 16,504 |
+| 5 | Sathorn | dead hours | 5.1% | 5.2% | 5.5% | ฿218 × 50 | 11,013 |
+| 6 | Rama 9 | Sharing | 3.3% | none (no peers) | 7.4% (30/07) | ฿234 avg price | 8,368 |
+| 7 | Rama 9 | side | 44.0% | none | 54.0% (30/07) | ฿68 | 5,918 |
+| 8 | Silom | side | 34.2% | 38.6% Gaysorn | 36.6% (27/08), used | ฿65 | 5,559 |
+| 9 | OCC | bev_premium | 14.9% | 14.9% OCC | 17.7% (23/07), used | ฿51 step from water | 4,469 |
+| 10 | OCC | set | 3.4% | 3.4% OCC | 5.6% (30/07), used | ฿54.45 measured | 3,749 |

@@ -51,7 +51,7 @@ BUDGET_MB = 8.0
 MONEY = {"gross", "disc", "net", "opt_thb", "main_thb", "bev_thb", "side_thb", "top_thb", "des_thb",
          "thb", "price", "paid_thb", "menu_thb", "expected", "uplift", "avg_thb", "avg",
          "comm", "mkt", "payout", "spend", "sales", "bev_paid_thb", "bev_premium_thb",
-         "est_thb", "ads_thb", "adjust_thb", "set_thb", "value"}   # column aliases holding THB amounts
+         "est_thb", "ads_thb", "adjust_thb", "set_thb", "value", "thb_day", "ticket"}   # column aliases holding THB amounts
 YM_MIN = "to_char(current_date - interval '3 months','YYYY-MM')"   # growth guard 1
 bb = Backbone(load())
 
@@ -215,6 +215,12 @@ def build():
         select location_id loc, set_bills, nonset_bills, incremental_thb_per_set value,
                diff_per_meal_thb diff, persons_per_set_bill persons, sets_per_set_bill sets
         from sales_web.set_incremental order by location_id""")
+    # dead hours on peer / own-best benchmarks per off-peak hour (ruling 2026-10-08, weekdays, 30 days)
+    data["dead_hours"] = feed("dead_hours", """
+        select location_id loc, hour, occ, peer_target peer, peer_loc, own_best own,
+               to_char(own_best_window,'YYYY-MM-DD') own_win, target_used target, dwell_min dwell,
+               persons_day persons, thb_day, open_days days, ticket_thb ticket
+        from sales_web.dead_hours order by location_id, hour""")
     # menu-pair scripts (2026-10-08): top 300 rows per branch by bills_both
     data["pairs_menu"] = feed("pairs_menu", """
         select loc, channel, fam, item, bills_main, bills_both, rate, price from (

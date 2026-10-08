@@ -466,7 +466,7 @@ SET_INC_DAYS = 90        # set_incremental measurement window (sets are few: ~10
 PEER_MIN_MEALS = 1000    # peer qualifier: office branch with >= 1,000 meals (main+set) in the window
 OPP_MIN_MEALS = 100      # a branch x channel row needs >= 100 meals (also: own-best window minimum)
 PEERLESS = ("rama9",)    # peer group `office` = every live branch except these; they get peer_target NULL
-DEAD_HOURS = (10, 11, 14, 15, 16, 20)   # off-peak hours benchmarked (lunch 12-13 / dinner 17-19 excluded)
+DEAD_HOURS = (10, 14, 15, 16, 20)   # off-peak hours benchmarked (11 = early lunch at office branches, Point 2026-10-08; lunch 12-13 / dinner 17-19 excluded)
 DEAD_PEER_MIN_DAYS = 20  # dead-hours peer needs >= 20 open weekdays in the window
 DEAD_OWN_MIN_DAYS = 15   # an own-best 4-week window needs >= 15 open weekdays (max 20)
 DEAD_SKIP = ("rama9",)   # counter-style keying (~100% bills < 3 min): occupancy is only an ESTIMATE
@@ -740,7 +740,7 @@ def _sql_list(xs) -> str:
 
 def build_dead_hours(cur):
     """Dead hours on the SAME benchmark logic as every other lever (coordinator ruling 2026-10-08,
-    replaces the fixed 50% target). Off-peak hours DEAD_HOURS (10, 11, 14, 15, 16, 20 — lunch 12-13 and
+    replaces the fixed 50% target). Off-peak hours DEAD_HOURS (10, 14, 15, 16, 20 — 11 is early lunch; lunch 12-13 and
     dinner 17-19 excluded); WEEKDAYS only (Mon-Fri, not in sales_web.holidays, branch open = >= 1 dine-in
     order in tree_daily). Per branch x hour:
       current   = occupancy over the last OPP_DAYS full days = sum(persons_opened) / (seats x open weekdays)

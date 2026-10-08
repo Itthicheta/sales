@@ -258,7 +258,7 @@ is POS-native and already mirrored in the backbone.
     (Silom 34.6, Gaysorn 41.5, Sathorn 42.7, All Seasons 46.7, OCC 54.5); Rama 9 sells no sets (NULL).
   - **dead_hours** row per branch (channel dine_in; coordinator ruling 2026-10-08 — SAME benchmark logic
     as every lever, replaces the first fixed-50% version which gave ฿2.7–3.4M/month per branch): off-peak
-    hours **10, 11, 14, 15, 16, 20** (lunch 12–13 and dinner 17–19 excluded), **weekdays only** (Mon–Fri, not a
+    hours **10, 14, 15, 16, 20** (11:00 excluded 2026-10-08 — it is early lunch at the office branches; lunch 12–13 and dinner 17–19 excluded), **weekdays only** (Mon–Fri, not a
     holiday, branch open = ≥ 1 dine-in order). Per hour: current = weekday occupancy, last 30 full days;
     peer = 2nd-highest office branch occupancy for that hour among branches with ≥ 20 open weekdays
     (< 3 qualify → highest other); own best = best 28-day window stepping 7 days in 90 days (window ≥ 15

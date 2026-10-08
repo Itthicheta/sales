@@ -385,7 +385,7 @@ const T = {
     "dead_by_peer": "เพื่อน {0}",
     "dead_by_own": "ตัวเอง {0}",
     "dead_peer_btn": "เพื่อน",
-    "dead_note_peer": "ชั่วโมงนอกพีค 10, 11, 14, 15, 16, 20 น. · วันธรรมดา · 30 วันเต็มล่าสุด (ไม่ขึ้นกับช่วงวันที่) · เป้าแต่ละชั่วโมง = ค่าที่ต่ำกว่าระหว่างสาขาออฟฟิศอันดับ 2 (≥20 วันเปิด) กับช่วง 4 สัปดาห์ที่ดีที่สุดของตัวเองใน 90 วัน · occupancy = คนเปิดบิล ÷ ที่นั่ง (1 คน/ที่นั่ง/ชม.) · คน = (เป้า − ตอนนี้) × ที่นั่ง · ฿ = คน × ยอดต่อหัว · ฿/เดือน = ฿/วัน × วันธรรมดาที่เปิด · ตัวเลขเดียวกับตารางโอกาสหัวข้อ 3",
+    "dead_note_peer": "ชั่วโมงนอกพีค 10, 14, 15, 16, 20 น. (11 น. = ช่วงเริ่มมื้อเที่ยง ไม่นับ) · วันธรรมดา · 30 วันเต็มล่าสุด (ไม่ขึ้นกับช่วงวันที่) · เป้าแต่ละชั่วโมง = ค่าที่ต่ำกว่าระหว่างสาขาออฟฟิศอันดับ 2 (≥20 วันเปิด) กับช่วง 4 สัปดาห์ที่ดีที่สุดของตัวเองใน 90 วัน · occupancy = คนเปิดบิล ÷ ที่นั่ง (1 คน/ที่นั่ง/ชม.) · คน = (เป้า − ตอนนี้) × ที่นั่ง · ฿ = คน × ยอดต่อหัว · ฿/เดือน = ฿/วัน × วันธรรมดาที่เปิด · ตัวเลขเดียวกับตารางโอกาสหัวข้อ 3",
     "dead_month_wd": "฿/เดือน (วันธรรมดา)",
     "dead_ceiling": "เพดานสมมติ (what-if ceiling)",
     "opp_h_peer": "เป้า (เพื่อน)",
@@ -848,7 +848,7 @@ const T = {
     "dead_by_peer": "peer {0}",
     "dead_by_own": "own best {0}",
     "dead_peer_btn": "Peer",
-    "dead_note_peer": "Off-peak hours 10, 11, 14, 15, 16, 20 · weekdays · last 30 full days (ignores the date range) · each hour's target = the lower of the 2nd-best office branch (≥20 open days) and the branch's own best 4 weeks in 90 days · occupancy = persons opened ÷ seats (1 guest / seat / hour) · people = (target − now) × seats · ฿ = people × ticket per head · ฿/month = ฿/day × open weekdays · same number as the section 3 opportunity table",
+    "dead_note_peer": "Off-peak hours 10, 14, 15, 16, 20 (11:00 is early lunch, excluded) · weekdays · last 30 full days (ignores the date range) · each hour's target = the lower of the 2nd-best office branch (≥20 open days) and the branch's own best 4 weeks in 90 days · occupancy = persons opened ÷ seats (1 guest / seat / hour) · people = (target − now) × seats · ฿ = people × ticket per head · ฿/month = ฿/day × open weekdays · same number as the section 3 opportunity table",
     "dead_month_wd": "฿/month (weekdays)",
     "dead_ceiling": "what-if ceiling",
     "opp_h_peer": "Target (peer)",
@@ -1791,7 +1791,7 @@ function pairCard() {
     (lines ? `<ol class="pm">${lines}</ol>` : `<div class="muted">${t('no_data')}</div>`) + '</div>';
 }
 // ---- dead hours, benchmarked (feed `dead_hours`, sales_tables.build_dead_hours; ruling 2026-10-08):
-// off-peak hours 10, 11, 14, 15, 16, 20, weekdays, last 30 full days; per hour target = the smaller of the
+// off-peak hours 10, 14, 15, 16, 20 (11 excluded 2026-10-08: early lunch), weekdays, last 30 full days; per hour target = the smaller of the
 // office peer (2nd-best) and own best 4 weeks that is above current. "14:00 4.2%→6.0% (own best)" list.
 function deadHourList(loc) {
   if (!D.cols.dead_hours) return '';

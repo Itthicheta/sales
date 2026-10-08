@@ -1580,8 +1580,9 @@ function ticketStore() {
     table(th([t('branch'), [t('main_plus_set')], ...ATT.map(x => [x[1]])]), b, 'heat') + '</div>';
   // (b) opportunity calculator
   const o = A('opportunity');
-  const op = get('opportunity').filter(r => F.branches.has(r[o.loc])).sort((x, y) => (y[o.uplift] || 0) - (x[o.uplift] || 0));
-  const totUp = sum(op, r => r[o.uplift]);
+  const opAll = get('opportunity').filter(r => F.branches.has(r[o.loc])).sort((x, y) => (y[o.uplift] || 0) - (x[o.uplift] || 0));
+  const op = opAll.slice(0, 10);   // top 10 only (Point 2026-10-08)
+  const totUp = sum(opAll, r => r[o.uplift]);
   let ob = '';
   op.forEach(r => {
     const key = r[o.loc] + '|' + r[o.channel] + '|' + r[o.lever], chL = esc(CH[r[o.channel]] || r[o.channel]), lvL = esc(LEVER[r[o.lever]] || r[o.lever]);

@@ -7,8 +7,8 @@ self-contained: a fresh session can build from here alone.
 Repo: **github.com/Itthicheta/sales**, cloned at `~/sales`. Until 2026-10-07 this
 lived inside the data-backbone repo (`~/mamapook-data/sales_app/` + `tools/`);
 that repo's git history still holds the earlier commits. Vault twin of this file:
-`Second brain/Mama Pook/Projects/Sales Web/Project Sales Web.md` (keep identical),
-plus a read-only nightly mirror of the whole repo at `Projects/Sales Web/repo/`
+`Second brain/MMP 2nd Brain/raw/legacy-vault/Projects/Sales Web/Project Sales Web.md` (keep identical),
+plus a read-only nightly mirror of the whole repo at `raw/repo-docs/sales/`
 (rsync in mamapook-data `tools/backup.sh`).
 
 ```

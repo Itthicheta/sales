@@ -46,3 +46,51 @@ Possible follow-ups (not built): a 15-minute peak view, or table occupancy (bill
 - 1,746 non-split bills across branches in the last 30 days are < 3 min (Rama 9 is most of them). They
   are excluded as specified.
 - Grab leg of section 2 unchanged; in Sep–Oct it shows "no Grab data" because Grab exports cover Aug only.
+
+---
+
+## 2026-10-08 addendum — late-keyed imputation + peak 10-minute slot (Point)
+
+**Rule 1 — late-keyed bills.** Non-split dine-in bills with closed − opened < 3 min were opened at
+payment. Now opened := closed − the branch's median dwell of normal bills (3–240 min) opened in the same
+hour-of-day, last 90 days (≥ 10 bills; else branch median ≥ 30 bills; else 35 min). New column
+`imputed_bills`.
+
+**Rule 2 — peak slot.** `peak_persons` = max over hh:00, :10 … :50 of persons seated at that instant;
+`peak_slot` 0–5. UI headline = peak % (avg of daily peaks ÷ seats), second line = hourly average.
+
+### Weekdays, 30 days to 2026-10-07, 12:00 hour
+| branch | seats | peak % (UI, avg of daily peaks) | busiest-slot avg % | hourly avg before | hourly avg after | modal peak slot |
+|---|---|---|---|---|---|---|
+| Silom | 73 | 82 (raw 81.6) | 75.5 (12:30) | 64.7 | 64.8 | 12:20 |
+| All Seasons | 60 | 76 | 70.2 (12:20) | 64.3 | 64.4 | 12:10 |
+| OCC | 66 | 64 | 58.7 (12:30) | 43.1 | 50.0 | 12:30 |
+| Sathorn | 64 | 60 | 54.4 (12:30) | 48.0 | 48.0 | 12:30 |
+| Gaysorn | 54 | 50 | 43.3 (12:40) | 35.9 | 36.1 | 12:40 |
+| Rama 9 | 16 | 10 | 10.3 (12:30) | 0.0 | 4.5 | 12:30 (days with a peak > 0) |
+
+Point's reference numbers (Silom 79, ASP 70, OCC 59, Sathorn 54, Gaysorn 43) match the **busiest-slot
+average** (max over slots of the per-slot average across days). The specified UI figure — average of each
+day's own peak — is 5–6 pp higher because the peak moves between 12:10 and 12:40 from day to day.
+
+### Imputed share of dine-in bills (weekdays, 30 days)
+| branch | bills | imputed | share | lunch share (closed 11–13) | imputed dwell (min) |
+|---|---|---|---|---|---|
+| All Seasons | 1,438 | 111 | 7.7% | 2.4% | 30.0 |
+| Gaysorn | 1,500 | 43 | 2.9% | 0.7% | 31.4 |
+| OCC | 1,553 | 276 | 17.8% | 23.2% | 33.5 |
+| Rama 9 | 242 | 224 | 92.6% | 76.2% | 19.6 |
+| Sathorn | 1,561 | 138 | 8.8% | 3.4% | 28.2 |
+| Silom | 1,898 | 113 | 6.0% | 2.0% | 32.0 |
+
+### Sathorn by tables
+At each weekday's 12:00 peak slot: 38.4 persons seated, 13.5 bills open on 33 tables (41%); max 19
+bills; never 33. By the POS, Sathorn is not table-full at lunch — either parties share tables, bills
+open late, or the floor is fuller than the POS shows.
+
+### Odd things
+- Rama 9 imputes from only a handful of "normal" bills: its median dwell is ~20 min, against 28–34 min
+  elsewhere. It is an estimate, tagged in the card, and still excluded from dead hours.
+- Outside lunch, imputed bills at All Seasons and Sathorn run 8–9% (mostly off-peak), which lifts their
+  off-peak averages slightly. Dead-hour lever after rebuild: ฿11k–64k/month (was ฿11k–63k).
+- Pipeline: build_occupancy 1.4 s; sales_tables.py total 12 s.

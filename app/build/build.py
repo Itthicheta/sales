@@ -144,7 +144,9 @@ def build():
         select location_id loc, to_char(business_date,'YYYY-MM-DD') d, hour, seat_minutes seat_min,
                bills_open, turns,
                dwell_min_sum dwell_sum,   -- appended: sum of dwell minutes of the `turns` orders
-               persons_opened             -- appended 2026-10-07: persons of bills opened in the hour (served)
+               persons_opened,            -- appended 2026-10-07: persons of bills opened in the hour (served)
+               imputed_bills,             -- appended 2026-10-08: late-keyed bills (interval imputed) open in the hour
+               peak_persons, peak_slot    -- appended 2026-10-08: busiest 10-min slot start (persons, slot 0-5)
         from sales_web.occupancy_hourly where business_date >= current_date - 90
         order by business_date, location_id, hour""")
     data["pax_trust"] = feed("pax_trust", """

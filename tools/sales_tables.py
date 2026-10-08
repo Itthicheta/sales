@@ -469,7 +469,8 @@ PEERLESS = ("rama9",)    # peer group `office` = every live branch except these;
 DEAD_HOURS = (10, 11, 14, 15, 16, 20)   # off-peak hours benchmarked (lunch 12-13 / dinner 17-19 excluded)
 DEAD_PEER_MIN_DAYS = 20  # dead-hours peer needs >= 20 open weekdays in the window
 DEAD_OWN_MIN_DAYS = 15   # an own-best 4-week window needs >= 15 open weekdays (max 20)
-DEAD_SKIP = ("rama9",)   # occupancy unmeasurable (counter-style keying, ~90% bills < 3 min)
+DEAD_SKIP = ("rama9",)   # counter-style keying (~100% bills < 3 min): occupancy is only an ESTIMATE
+                         # (late-keyed imputation, 2026-10-08) — too soft to price a lever on
 VARIANT_RE = r"\s(ธรรมดา|เครื่องใน|ทรงเครื่อง)\s*$"
 OPP_WIN = "business_date between current_date-%d and current_date-1" % OPP_DAYS
 INSTORE = "('dine_in','take_away')"
@@ -753,7 +754,7 @@ def build_dead_hours(cur):
       ฿/day = persons x ticket/head (dine-in net / meals, last OPP_DAYS days)
     ฿/month = sum over hours of ฿/day x open weekdays in the window (gap measured on weekdays, applied to
     weekdays only). Detail -> sales_web.dead_hours (feed dead_hours); one `dead_hours` row per branch ->
-    sales_web.opportunity. Rama 9 (DEAD_SKIP) excluded: occupancy unmeasurable."""
+    sales_web.opportunity. Rama 9 (DEAD_SKIP) excluded: its occupancy is ~100% imputed (estimate only)."""
     hrs = ",".join(str(h) for h in DEAD_HOURS)
     rebuild(cur, "dead_hours",
         """location_id text, hour int, occ numeric, peer_target numeric, peer_loc text, own_best numeric,
@@ -871,6 +872,12 @@ def build_grab_match(cur):
         .replace("__DAYS__", str(WINDOW_DAYS + 10)))
 
 
+OCC_IMPUTE_DAYS = 90       # look-back for the late-keyed dwell median
+OCC_IMPUTE_MIN_HOUR = 10   # >= this many normal bills for an hour-of-day median, else branch median
+OCC_IMPUTE_MIN_ALL = 30    # >= this many normal bills for the branch median, else OCC_IMPUTE_FALLBACK
+OCC_IMPUTE_FALLBACK = 35   # minutes
+
+
 def build_occupancy(cur):
     """Hourly seat occupancy (Point 2026-10-07, replaces the daypart utilization).
     One row per live branch x trading day (any dine-in order) x hour, hours = sales_web.seats
@@ -880,22 +887,35 @@ def build_occupancy(cur):
                   parentsaletabid > 0, splittabname 'Split%') are opened at the moment of the
                   split (dwell ~0-1 min), so they start at their MASTER tab's opened_at — without
                   this ~40% of Silom's lunch bills (one per person paying) fell under the 3-min
-                  floor and their customers vanished. Intervals < 3 or > 240 min are dropped.
+                  floor and their customers vanished.
+      LATE-KEYED bills (Point 2026-10-08): a non-split bill with opened_at and closed_at both set and
+                  closed - opened < 3 min was opened at payment time (OCC ~22% of lunch bills,
+                  Rama 9 ~100%) — the customers sat, the POS just has no seat time. Their interval is
+                  IMPUTED: opened := closed - median dwell, median = the branch's median dwell of
+                  normal bills (3-240 min) opened in the same hour-of-day (hour of the recorded
+                  opened_at) over the last OCC_IMPUTE_DAYS days (>= OCC_IMPUTE_MIN_HOUR bills); fallback
+                  the branch's overall median (>= OCC_IMPUTE_MIN_ALL bills); fallback OCC_IMPUTE_FALLBACK
+                  min. imputed_bills = such bills overlapping the hour. Other intervals < 3 or
+                  > 240 min are dropped.
       persons   = main_units + set_units of the order (>= 1) — bowls as persons, ALWAYS, never keyed
                   pax, whatever pax_trust says (Point 2026-10-07): staff may key pax wrong and
                   people join tables later; on average 1 person = 1 main.
     seat_minutes = sum(persons x overlap minutes with the hour); bills_open = orders
     overlapping the hour; turns = orders OPENED in the hour; dwell_min_sum = sum of the dwell
-    of those opened orders (avg dwell by hour = dwell_min_sum / turns);
-    persons_opened = sum of persons of those opened orders (served).
-    UI (LOCKED 2026-10-07): occupancy % = sum(seat_minutes) / (seats x 60 x open days), open days =
-    distinct dates in range with a dine-in row in the tree feed (orders > 0). seat_minutes already
-    counts only the overlap of each interval with the hour."""
-    cur.execute("alter table if exists sales_web.occupancy_hourly add column if not exists persons_opened int")
-    rebuild(cur, "occupancy_hourly",
-        """location_id text, business_date date, hour int, seat_minutes numeric, bills_open int,
-           turns int, dwell_min_sum numeric, persons_opened int""",
-        f"""with ts as (
+    of those opened orders (avg dwell by hour = dwell_min_sum / turns; imputed bills count with the
+    median dwell); persons_opened = sum of persons of those opened orders (served).
+    PEAK (Point 2026-10-08): the hourly average hides the ~30-min rush, so per branch-day-hour
+    peak_persons = max over the six 10-minute slot starts hh:00, :10 .. :50 of persons seated at that
+    instant (bills with open <= t < close), peak_slot = 0-5 of that max (earliest on ties).
+    UI (LOCKED 2026-10-07, peak 2026-10-08): headline % = avg over open days of peak_persons / seats,
+    second line = hourly average sum(seat_minutes) / (seats x 60 x open days), open days =
+    distinct dates in range with a dine-in row in the tree feed (orders > 0)."""
+    for c in ("persons_opened int", "imputed_bills int", "peak_persons numeric", "peak_slot smallint"):
+        cur.execute(f"alter table if exists sales_web.occupancy_hourly add column if not exists {c}")
+    cur.execute("drop table if exists t_occ_lv")
+    cur.execute(f"""
+        create temp table t_occ_lv on commit drop as
+        with ts as (
               select order_id, min(seated_at) seated_at, max(left_at) left_at
               from mp_clean.table_sessions where not coalesce(is_cancelled, false) group by 1),
             sp as (   -- split child -> its master order's opened_at
@@ -913,34 +933,73 @@ def build_occupancy(cur):
                           else ts.seated_at end s,
                      case when mo.opened_at is not null and mo.closed_at is not null
                           then mo.closed_at else ts.left_at end e,
+                     (mo.opened_at is not null and mo.closed_at is not null and sp.order_id is null
+                      and mo.closed_at - mo.opened_at < interval '3 min') late,
                      greatest(t.main_units + t.set_units, 1) pu
               from t_ord t
               join mp_clean.orders mo on mo.order_id = t.order_id
               left join ts on ts.order_id = t.order_id
               left join sp on sp.order_id = t.order_id
               where t.channel = 'dine_in'),
-            lv as (
-              select order_id, location_id, business_date, pu,
-                     s {BKK} sl, e {BKK} el, extract(epoch from e - s) / 60 dm
-              from iv where e - s between interval '3 min' and interval '240 min'),
-            grid as (
+            nv as (   -- normal intervals
+              select order_id, location_id, business_date, pu, s {BKK} sl, e {BKK} el,
+                     extract(epoch from e - s) / 60 dm
+              from iv where not late and e - s between interval '3 min' and interval '240 min'),
+            mh as (select location_id, extract(hour from sl)::int hr,
+                          percentile_cont(0.5) within group (order by dm) med, count(*) n
+                   from nv where business_date >= current_date - {OCC_IMPUTE_DAYS} group by 1, 2),
+            ma as (select location_id, percentile_cont(0.5) within group (order by dm) med, count(*) n
+                   from nv where business_date >= current_date - {OCC_IMPUTE_DAYS} group by 1),
+            lt as (   -- late-keyed: opened := closed - median dwell
+              select iv.order_id, iv.location_id, iv.business_date, iv.pu, iv.e {BKK} el,
+                     coalesce(case when mh.n >= {OCC_IMPUTE_MIN_HOUR} then mh.med end,
+                              case when ma.n >= {OCC_IMPUTE_MIN_ALL} then ma.med end,
+                              {OCC_IMPUTE_FALLBACK})::numeric dm
+              from iv
+              left join mh on mh.location_id = iv.location_id and mh.hr = extract(hour from iv.s {BKK})
+              left join ma on ma.location_id = iv.location_id
+              where iv.late)
+        select order_id, location_id, business_date, pu, sl, el, dm, false imputed from nv
+        union all
+        select order_id, location_id, business_date, pu, el - dm * interval '1 min', el, dm, true from lt""")
+    cur.execute("create index on t_occ_lv (location_id, business_date)")
+    cur.execute("analyze t_occ_lv")
+    cur.execute("select imputed, count(*) from t_occ_lv group by 1 order by 1")
+    print("    intervals (imputed?, n):", cur.fetchall())
+    rebuild(cur, "occupancy_hourly",
+        """location_id text, business_date date, hour int, seat_minutes numeric, bills_open int,
+           turns int, dwell_min_sum numeric, persons_opened int, imputed_bills int,
+           peak_persons numeric, peak_slot smallint""",
+        f"""with grid as (
               select d.location_id, d.business_date, h,
                      d.business_date + h * interval '1 hour' hs
               from (select distinct location_id, business_date from t_ord where channel = 'dine_in') d
               join sales_web.seats s on s.location_id = d.location_id
               cross join lateral generate_series(greatest(coalesce(s.open_hour, 10), 10),
-                                                 least(coalesce(s.close_hour, 20), 20)) h)
-            select g.location_id, g.business_date, g.h,
-                   round(coalesce(sum(lv.pu * extract(epoch from least(lv.el, g.hs + interval '1 hour')
-                                                               - greatest(lv.sl, g.hs)) / 60), 0), 1),
-                   count(lv.order_id),
-                   count(*) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'),
-                   round(coalesce(sum(lv.dm) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0), 1),
-                   coalesce(sum(lv.pu) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0)::int
-            from grid g
-            left join lv on lv.location_id = g.location_id and lv.business_date = g.business_date
-                        and lv.sl < g.hs + interval '1 hour' and lv.el > g.hs
-            group by 1, 2, 3""")
+                                                 least(coalesce(s.close_hour, 20), 20)) h),
+            agg as (
+              select g.location_id, g.business_date, g.h,
+                     round(coalesce(sum(lv.pu * extract(epoch from least(lv.el, g.hs + interval '1 hour')
+                                                                 - greatest(lv.sl, g.hs)) / 60), 0), 1) sm,
+                     count(lv.order_id) bo,
+                     count(*) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour') tu,
+                     round(coalesce(sum(lv.dm) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0), 1) ds,
+                     coalesce(sum(lv.pu) filter (where lv.sl >= g.hs and lv.sl < g.hs + interval '1 hour'), 0)::int po,
+                     count(*) filter (where lv.imputed) ib
+              from grid g
+              left join t_occ_lv lv on lv.location_id = g.location_id and lv.business_date = g.business_date
+                          and lv.sl < g.hs + interval '1 hour' and lv.el > g.hs
+              group by 1, 2, 3),
+            sl as (   -- persons seated at each 10-minute slot start
+              select g.location_id, g.business_date, g.h, k, coalesce(sum(lv.pu), 0) p
+              from grid g cross join generate_series(0, 5) k
+              left join t_occ_lv lv on lv.location_id = g.location_id and lv.business_date = g.business_date
+                          and lv.sl <= g.hs + k * interval '10 min' and lv.el > g.hs + k * interval '10 min'
+              group by 1, 2, 3, 4),
+            pk as (select distinct on (location_id, business_date, h) location_id, business_date, h, p, k
+                   from sl order by location_id, business_date, h, p desc, k)
+            select a.location_id, a.business_date, a.h, a.sm, a.bo, a.tu, a.ds, a.po, a.ib, pk.p, pk.k
+            from agg a join pk using (location_id, business_date, h)""")
 
 
 # ---------- Step 7: main ----------

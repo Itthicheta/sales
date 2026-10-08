@@ -59,6 +59,8 @@ tr.hl td { background:color-mix(in srgb, #e6a028 16%, transparent); }
 .legend span { display:inline-flex; align-items:center; gap:4px; margin-right:10px; font-size:11.5px; }
 .legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
 .heat td.n { color:var(--fg); }
+table.occ td .avg { display:block; font-size:10px; font-weight:400; color:var(--muted); line-height:1.1; }
+table.occ td .pk { font-weight:600; }
 /* tree table column groups (Point 2026-10-07): drinks / food attach / money */
 td.g1, th.g1 { background:rgba(42,120,214,.07); } td.g2, th.g2 { background:rgba(26,127,60,.07); }
 td.gs, th.gs { border-left:2px solid var(--line); }
@@ -344,9 +346,15 @@ const T = {
     "served_row": "รับจริง (คนเปิดบิล/ชม.)",
     "gap_row": "ส่วนต่าง (รองรับ − รับจริง)",
     "queue": "คิว",
-    "occ_note3": "Occupancy = คน-นาทีที่นั่ง ÷ (ที่นั่ง × 60 × วันที่เปิด) · คน = ชามหลัก + เซต · เวลานั่งจากเปิดบิล→ปิดบิล · รองรับได้ = ที่นั่ง × 60 ÷ เวลานั่ง · เต็ม ≥80% / ปานกลาง 50–80% / ว่าง <50% (แสดงสูงสุด 100% ค่าจริงอยู่ใน tooltip) · พระราม 9 ≈ 0 จนกว่าจะเปิดบิลตอนสั่งอาหาร",
+    "occ_note3": "Occupancy เฉลี่ย = คน-นาทีที่นั่ง ÷ (ที่นั่ง × 60 × วันที่เปิด) · พีค = คนที่นั่งอยู่ ณ ต้นช่วง 10 นาทีที่แน่นที่สุดของชั่วโมง ÷ ที่นั่ง เฉลี่ยต่อวัน · คน = ชามหลัก + เซต · เวลานั่งจากเปิดบิล→ปิดบิล · รองรับได้ = ที่นั่ง × 60 ÷ เวลานั่ง · สี: เต็ม ≥80% / ปานกลาง 50–80% / ว่าง <50% ตามตัวเลขพีค (แสดงสูงสุด 100% ค่าจริงอยู่ใน tooltip) · แถบเวลานั่ง / รองรับได้ / รับจริง / ส่วนต่าง / รอบ และมูลค่าชั่วโมงว่าง ใช้ค่าเฉลี่ยทั้งชั่วโมง · พระราม 9 คีย์บิลตอนจ่ายเกือบทั้งหมด → ตัวเลขเป็นการประมาณการ",
+    "occ_note_pk": "ตัวเลขใหญ่ = 10 นาทีที่แน่นที่สุดของชั่วโมง · ตัวเลขเล็ก = เฉลี่ยทั้งชั่วโมง · บิลที่เปิด-ปิดภายใน 3 นาที (คีย์ตอนจ่าย) ประมาณเวลานั่งจากค่ากลางของสาขา",
+    "occ_avg": "เฉลี่ย {0}",
+    "occ_tip_pk": "พีค 10 นาที (ค่าจริง) {0} · ช่วงที่พีคบ่อยสุด {1}\nคนที่นั่งอยู่ ณ พีค/วัน {2}",
+    "occ_tip_imp": "บิลประมาณเวลานั่ง (คีย์ตอนจ่าย) {0} บิล · {1}/วัน",
+    "occ_est": "ประมาณการ",
+    "occ_est_tip": "{0} ของบิลคีย์ตอนจ่าย — เวลานั่งประมาณจากค่ากลางของสาขา",
     "occ_note": "100% = ทุกที่นั่งถูกใช้ตลอดชั่วโมง · ชั่วโมงที่ ≥80% = เต็ม (คิวเกิดที่นี่ → ดูรอบต่อที่นั่ง/ชม. · เวลานั่งเฉลี่ย) · <50% = ว่าง (การตลาด)",
-    "occ_note2": "ที่นั่งถูกใช้ = คน × นาทีที่นั่ง (เปิดบิล → ปิดบิล, ทานที่ร้านเท่านั้น) ÷ (ที่นั่ง × 60) เฉลี่ยต่อวันที่เลือก · รอบ/ที่นั่ง/ชม. = บิลที่เปิดใหม่ในชั่วโมงนั้น ÷ ที่นั่ง — เต็มและรอบสูง = เต็มจริงมีคิว · เต็มแต่รอบต่ำ = นั่งนาน · คน = ชามหลัก + เซต ของแต่ละบิล (ไม่ใช้จำนวนลูกค้าที่คีย์ — 1 ชาม ≈ 1 คน) · บิลแยกจ่ายนับเวลาจากเปิดบิลแม่ · บิลที่เปิด-ปิดภายใน 3 นาทีไม่นับ",
+    "occ_note2": "ที่นั่งถูกใช้ = คน × นาทีที่นั่ง (เปิดบิล → ปิดบิล, ทานที่ร้านเท่านั้น) ÷ (ที่นั่ง × 60) เฉลี่ยต่อวันที่เลือก · รอบ/ที่นั่ง/ชม. = บิลที่เปิดใหม่ในชั่วโมงนั้น ÷ ที่นั่ง — เต็มและรอบสูง = เต็มจริงมีคิว · เต็มแต่รอบต่ำ = นั่งนาน · คน = ชามหลัก + เซต ของแต่ละบิล (ไม่ใช้จำนวนลูกค้าที่คีย์ — 1 ชาม ≈ 1 คน) · บิลแยกจ่ายนับเวลาจากเปิดบิลแม่ · บิลอื่นที่เปิด-ปิดภายใน 3 นาที (คีย์ตอนจ่าย) เริ่มนั่ง = ปิดบิล − ค่ากลางเวลานั่งของสาขาในชั่วโมงนั้น (90 วัน)",
     "occ_tip": "ที่นั่งถูกใช้ (ค่าจริง) {0}\nคน-นาทีเฉลี่ย/วัน {1}\nบิลที่เปิดอยู่/วัน {2}\nรอบ (บิลเปิดใหม่)/วัน {3}\nที่นั่ง {4} · {5} วัน",
     "occ_over": "เกิน 100% = คีย์จำนวนคนเกิน หรือแชร์โต๊ะ",
     "occ_mid": "50–79% ปานกลาง",
@@ -804,9 +812,15 @@ const T = {
     "served_row": "Served (persons opened/hr)",
     "gap_row": "Gap (capacity − served)",
     "queue": "queue",
-    "occ_note3": "Occupancy = person-minutes seated ÷ (seats × 60 × open days) · persons = main bowls + sets · dwell from bill open→close · capacity = seats × 60 ÷ dwell · Rama 9 ≈ 0 until bills are opened at order time · Full ≥80% / Medium 50–80% / Quiet <50% (display capped at 100%, raw in tooltip)",
+    "occ_note3": "Average occupancy = person-minutes seated ÷ (seats × 60 × open days) · peak = persons seated at the start of the busiest 10-minute slot of the hour ÷ seats, averaged over days · persons = main bowls + sets · dwell from bill open→close · capacity = seats × 60 ÷ dwell · colours: Full ≥80% / Medium 50–80% / Quiet <50% on the peak number (display capped at 100%, raw in tooltip) · the dwell / capacity / served / gap / turns strips and the dead-hour value use the hourly average · Rama 9 keys almost every bill at payment → its figures are estimates",
+    "occ_note_pk": "Big number = busiest 10 minutes of the hour · small number = whole-hour average · bills opened and closed within 3 min (keyed at payment) get an estimated seat time from the branch median",
+    "occ_avg": "avg {0}",
+    "occ_tip_pk": "Peak 10 min (raw) {0} · most frequent peak slot {1}\nPersons seated at peak / day {2}",
+    "occ_tip_imp": "Bills with estimated seat time (keyed at payment) {0} · {1}/day",
+    "occ_est": "estimated",
+    "occ_est_tip": "{0} of bills keyed at payment — seat time estimated from the branch median",
     "occ_note": "100% = every seat used for the whole hour · hours ≥80% = full (queues form here → check turns per seat/hr · average dwell) · <50% = quiet (marketing)",
-    "occ_note2": "Occupancy = guests × minutes seated (bill opened → closed, dine-in only) ÷ (seats × 60), averaged over the selected days · Turns / seat / hr = bills opened in that hour ÷ seats — full with high turns = truly full with a queue · full with low turns = guests stay long · guests = main bowls + sets per bill (keyed pax is not used — 1 bowl ≈ 1 person) · split bills count from the master bill’s open time · bills opened and closed within 3 min are excluded",
+    "occ_note2": "Occupancy = guests × minutes seated (bill opened → closed, dine-in only) ÷ (seats × 60), averaged over the selected days · Turns / seat / hr = bills opened in that hour ÷ seats — full with high turns = truly full with a queue · full with low turns = guests stay long · guests = main bowls + sets per bill (keyed pax is not used — 1 bowl ≈ 1 person) · split bills count from the master bill’s open time · other bills opened and closed within 3 min (keyed at payment) start at close − the branch’s median dwell for that hour (90 days)",
     "occ_tip": "Occupancy (raw) {0}\nAvg guest-minutes / day {1}\nBills open / day {2}\nTurns (bills opened) / day {3}\nSeats {4} · {5} days",
     "occ_over": "Over 100% = pax over-keyed or table sharing",
     "occ_mid": "50–79% Medium",
@@ -1548,7 +1562,7 @@ function occBg(u) {
   if (u >= 0.5) return `background:rgba(230,160,40,${(0.22 + 0.25 * (u - 0.5) / 0.3).toFixed(3)})`;
   return `background:rgba(137,135,129,${(0.05 + 0.18 * u / 0.5).toFixed(3)})`;
 }
-function occAgg() {   // loc -> {days, h: {hour -> {sm, bo, tu, ds, po}}}
+function occAgg() {   // loc -> {days, h: {hour -> {sm, bo, tu, ds, po, pk, ib, sc[6]}}}
   // open days (locked 2026-10-07): distinct dates in the selected range with >=1 dine-in row (orders>0)
   // in the tree feed — closed days / holidays must not dilute the average.
   const o = A('occupancy'), out = {}, tr = A('tree'), od = {};
@@ -1556,8 +1570,12 @@ function occAgg() {   // loc -> {days, h: {hour -> {sm, bo, tu, ds, po}}}
   for (const r of rows('occupancy')) {
     const x = out[r[o.loc]] || (out[r[o.loc]] = {dset:new Set(), h:{}});
     x.dset.add(r[o.d]);
-    const c = x.h[r[o.hour]] || (x.h[r[o.hour]] = {sm:0, bo:0, tu:0, ds:0, po:0});
+    const c = x.h[r[o.hour]] || (x.h[r[o.hour]] = {sm:0, bo:0, tu:0, ds:0, po:0, pk:0, ib:0, sc:[0, 0, 0, 0, 0, 0]});
     c.sm += r[o.seat_min]; c.bo += r[o.bills_open]; c.tu += r[o.turns]; c.ds += r[o.dwell_sum] || 0; c.po += r[o.persons_opened] || 0;
+    // peak 10-min slot (2026-10-08): pk = sum of daily peak persons, sc = how often each slot was the peak
+    if (o.peak_persons != null) { c.pk += +r[o.peak_persons] || 0; if (r[o.peak_slot] != null && +r[o.peak_persons] > 0) c.sc[r[o.peak_slot]]++; }
+    if (o.imputed_bills != null) { c.ib += r[o.imputed_bills] || 0; x.ib = (x.ib || 0) + (r[o.imputed_bills] || 0); }
+    x.bo = (x.bo || 0) + r[o.bills_open];
   }
   for (const [id, x] of Object.entries(out)) x.days = (od[id] && od[id].size) || x.dset.size;
   return out;
@@ -1581,9 +1599,16 @@ function occupancyCard() {
     const occ = OCC_H.map(hh => {
       const c = x.h[hh], cls = occGrp(hh) + occGs(hh);
       if (!c) return `<td class="n ${cls}"></td>`;
-      const u = c.sm / (b.seats * 60 * x.days);
-      const tip = t('occ_tip', pct(u, 0), fmt(c.sm / x.days), fmt(c.bo / x.days, 1), fmt(c.tu / x.days, 1), b.seats, x.days) + (u > 1 ? '\n' + t('occ_over') : '');
-      return `<td class="n${occGs(hh)}" style="${occBg(u)}" title="${esc(tip)}">${pct(Math.min(u, 1), 0)}</td>`;
+      // headline = peak 10-min slot (avg over open days of peak persons / seats); 2nd line = hourly average
+      const u = c.sm / (b.seats * 60 * x.days), hasPk = A('occupancy').peak_persons != null, pk = c.pk / (b.seats * x.days);
+      const ms = c.sc.indexOf(Math.max(...c.sc)), mm = m => String(m).padStart(2, '0');
+      const slot = hasPk && Math.max(...c.sc) > 0 ? `${hh}:${mm(ms * 10)}–${ms === 5 ? (hh + 1) + ':00' : hh + ':' + mm(ms * 10 + 10)}` : '–';
+      const tip = (hasPk ? t('occ_tip_pk', pct(pk, 0), slot, fmt(c.pk / x.days, 1)) + '\n' : '') +
+        t('occ_tip', pct(u, 0), fmt(c.sm / x.days), fmt(c.bo / x.days, 1), fmt(c.tu / x.days, 1), b.seats, x.days) +
+        (hasPk ? '\n' + t('occ_tip_imp', fmt(c.ib), fmt(c.ib / x.days, 1)) : '') + ((hasPk ? pk : u) > 1 ? '\n' + t('occ_over') : '');
+      if (!hasPk) return `<td class="n${occGs(hh)}" style="${occBg(u)}" title="${esc(tip)}">${pct(Math.min(u, 1), 0)}</td>`;
+      return `<td class="n${occGs(hh)}" style="${occBg(pk)}" title="${esc(tip)}"><span class="pk">${pct(Math.min(pk, 1), 0)}</span>` +
+        `<span class="avg">${t('occ_avg', pct(Math.min(u, 1), 0))}</span></td>`;
     }).join('');
     const turns = OCC_H.map(hh => { const c = x.h[hh]; return `<td class="n muted ${occGrp(hh)}${occGs(hh)}">${c ? fmt(c.tu / (b.seats * x.days), 2) : ''}</td>`; }).join('');
     const dw = [], cp = [], sv = [], gp = [];
@@ -1598,7 +1623,8 @@ function occupancyCard() {
       gp.push(`<td class="n ${k}" style="${gap == null ? '' : q ? 'background:rgba(200,60,50,.28)' : gap < 0.3 * cap ? 'background:rgba(230,160,40,.25)' : ''}" title="${q ? esc(t('queue')) : ''}">${gap == null ? '' : fmt(gap, 0) + (q ? ' ' + t('queue') : '')}</td>`);
     }
     const strip = (lab, cells) => `<tr><td class="ind1 muted">${t(lab)}</td>${cells.join('')}</tr>`;
-    body += `<tr><td><b>${bn(id)}</b> <span class="muted">${t('occ_row')}</span></td>${occ}</tr>` +
+    const est = x.bo && (x.ib || 0) / x.bo > 0.5 ? ` <span class="muted" title="${esc(t('occ_est_tip', pct(x.ib / x.bo, 0)))}">(${t('occ_est')})</span>` : '';
+    body += `<tr><td><b>${bn(id)}</b>${est} <span class="muted">${t('occ_row')}</span></td>${occ}</tr>` +
       strip('dwell_row', dw) + strip('cap_row', cp) + strip('served_row', sv) + strip('gap_row', gp) +
       `<tr><td class="ind1 muted">${t('turns_row')}</td>${turns}</tr>`;
   }
@@ -1607,7 +1633,7 @@ function occupancyCard() {
     .map(([bg, l]) => `<span><i style="${bg}"></i>${l}</span>`).join('') + '</div>';
   return '<div class="card"><b>' + t('v_occ') + '</b>' + leg +
     `<table class="heat occ"><thead>${occHead()}</thead><tbody>${body}</tbody></table>` +
-    '<div class="note">' + t('occ_note') + '</div><div class="note">' + t('occ_note2') + '</div><div class="note">' + t('occ_note3') + '</div></div>';
+    '<div class="note">' + t('occ_note_pk') + '</div><div class="note">' + t('occ_note') + '</div><div class="note">' + t('occ_note2') + '</div><div class="note">' + t('occ_note3') + '</div></div>';
 }
 function dwellByHour() {
   if (!D.cols.occupancy) return '';

@@ -138,7 +138,7 @@ is POS-native and already mirrored in the backbone.
     Table `sales_web.occupancy_hourly(location_id, business_date, hour, seat_minutes, bills_open, turns,
     dwell_min_sum)` built by `build_occupancy` in tools/sales_tables.py :
     dine-in, finalized, not voided, live branches, 120 days; one row per branch × trading day × hour,
-    hours = sales_web.seats open_hour..close_hour clipped to 10–20 (Rama9 10–16).
+    hours = sales_web.seats open_hour..close_hour clipped to 10–20 (Rama9 10–16). See the 2026-10-08 addendum below: late-keyed bills are now imputed, not dropped, and the headline is the peak 10-min slot.
     Per order: interval = [opened_at, closed_at] Bangkok (fallback table_sessions seated_at/left_at if
     either is missing); **split children** (`pos_sale_tabs.parentsaletabid > 0`, splittabname 'Split%')
     start at their MASTER tab's opened_at (they are opened at the moment of the split, ~1 min, and were
@@ -174,6 +174,33 @@ is POS-native and already mirrored in the backbone.
     table %: solo diners at 2-seat tables (Silom 73 seats / 34 tables) make the room look full at ~60–70% seats. Rama9 can't be measured:
     ~90% of its dine-in bills are opened and closed within 3 min (counter-style keying) and are dropped.
     Report: docs/reports/2026-10-07-occupancy.md.
+  - **Occupancy addendum (Point 2026-10-08) — late-keyed imputation + peak 10-minute slot.**
+    (1) LATE-KEYED bills: a dine-in bill that is NOT a split child, has opened_at and closed_at, and
+    closed − opened < 3 min was opened at payment (OCC ~23% of lunch bills, Rama 9 ~93% of all). They are no
+    longer dropped: opened := closed − median dwell, median = the branch's median dwell of normal bills
+    (3–240 min) opened in the same hour-of-day (hour of the recorded opened_at) over the last 90 days
+    (needs ≥ 10 bills; else branch overall 90-day median, needs ≥ 30; else 35 min). Constants
+    OCC_IMPUTE_* in sales_tables.py. Imputed bills count everywhere (seat_minutes, bills_open, turns,
+    dwell_min_sum with the median dwell, persons_opened). New column `imputed_bills` = imputed bills
+    overlapping the hour. Rama 9 becomes measurable but is an ESTIMATE (row tagged ประมาณการ / estimated
+    when > 50% of its bills in range are imputed); it stays excluded from dead hours (DEAD_SKIP).
+    (2) PEAK: `peak_persons` = max over the six 10-minute slot starts (hh:00 … hh:50) of persons seated
+    at that instant (bills with open ≤ t < close), `peak_slot` 0–5 (earliest on ties); computed with a
+    generate_series over slots against temp table t_occ_lv (indexed). Occupancy build ~1.5 s; whole
+    sales_tables.py ~12 s.
+    Table now `occupancy_hourly(…, persons_opened, imputed_bills, peak_persons, peak_slot)`; feed
+    `occupancy` cols [loc, d, hour, seat_min, bills_open, turns, dwell_sum, persons_opened, imputed_bills,
+    peak_persons, peak_slot].
+    UI: heatmap headline = **peak %** = Σ peak_persons ÷ (seats × open days) (avg of the DAILY peaks,
+    capped 100, raw in tooltip); small second line "เฉลี่ย xx% / avg xx%" = the locked hourly average.
+    Colour thresholds apply to the peak number. Tooltip adds raw peak %, modal peak slot ("12:20–12:30"),
+    persons at peak/day, imputed bills (total and /day). The dwell / capacity / served / gap / turns strips,
+    the queue flag and the dead-hour lever stay on the hourly-average basis (stated in note 3).
+    NB: avg-of-daily-peaks runs ~5–6 pp above the max-of-slot-averages figure (busiest slot averaged
+    across days), because each day's peak lands on a different slot. Weekday 30 days to 2026-10-07, 12:00:
+    peak Silom 82 / All Seasons 76 / OCC 64 / Sathorn 60 / Gaysorn 50 / Rama 9 10; slot-average max 75 /
+    70 / 59 / 54 / 43 / 10; hourly avg 65 / 64 / 50 (was 43) / 48 / 36 / 5 (was 0).
+    Sathorn by tables: at its daily 12:00 peak slot ≈ 13.5 bills open on 33 tables (41%, max 19, never 33).
 - **Section 3 — opportunity calculator v2 (Point 2026-10-08; supersedes "best branch × avg price").**
   Built by `build_set_incremental`, `build_pair_attach`, `build_opportunity` (+ `build_dead_hours`) in
   tools/sales_tables.py, which run LAST in BUILDERS (they read tree_daily, occupancy_hourly, set_incremental).
@@ -218,7 +245,7 @@ is POS-native and already mirrored in the backbone.
     own_best_window, target_used, dwell_min, persons_day, thb_day, open_days, ticket_thb) → feed
     `dead_hours`. Opportunity row: current_rate / peer_target / own_best = hourly averages, target_used =
     avg of hours with a target, gap_pp = avg gap, meals_30d = persons/month, value = ticket/head, note =
-    contributing hours. Rama 9 excluded (occupancy unmeasurable). 2026-10-08: ฿11k–63k/month per branch.
+    contributing hours. Rama 9 excluded (occupancy ~93% imputed — estimate only, 2026-10-08). 2026-10-08: ฿11k–63k/month per branch.
     Digest: dead hours compete on this number only.
   - Table `sales_web.opportunity` v2: location_id, channel, lever, current_rate, peer_target, peer_best_loc,
     own_best, own_best_window, target_used, gap_pp, meals_30d, value_per_unit_thb, uplift_thb_month, note.

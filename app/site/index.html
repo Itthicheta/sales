@@ -329,8 +329,9 @@ const T = {
     "wait_seats": "รอข้อมูลที่นั่ง",
     "u_low": "ว่าง",
     "u_full": "เต็ม",
-    "v_dead": "(ข) ชั่วโมงเงียบ — ยอดสุทธิรายชั่วโมง",
-    "v_band": "แถบ 16:00–20:00 = {0} ของยอดทั้งวัน (฿{1})",
+    "v_dead": "(ข) ยอดสุทธิรายชั่วโมง — ชั่วโมงเงียบไฮไลต์",
+    "v_band": "แถบโปร 16:00–20:00 = {0} ของยอดทั้งวัน (฿{1})",
+    "v_dead_share": "● ชั่วโมงเงียบ (10, 14–16, 20 น.) = {0} ของยอดทั้งวัน (฿{1})",
     "pct_day": "% ของวัน",
     "v_exp": "(ค) ปกติ vs จริง",
     "v_exp_note": "ปกติ = ค่าคาดจากประวัติของสาขาเอง · แดง &lt; −15% · เขียว &gt; +15% · 🎌 วันหยุด · 🌧 ฝน ≥ 1 มม.",
@@ -795,8 +796,9 @@ const T = {
     "wait_seats": "Awaiting seat data",
     "u_low": "Quiet",
     "u_full": "Full",
-    "v_dead": "(b) Dead hours — net sales by hour",
-    "v_band": "16:00–20:00 band = {0} of the day’s sales (฿{1})",
+    "v_dead": "(b) Net sales by hour — dead hours highlighted",
+    "v_band": "16:00–20:00 promo band = {0} of the day’s sales (฿{1})",
+    "v_dead_share": "● Dead hours (10, 14–16, 20) = {0} of the day’s sales (฿{1})",
     "pct_day": "% of day",
     "v_exp": "(c) Expected vs actual",
     "v_exp_note": "Expected = forecast from the branch’s own history · red &lt; −15% · green &gt; +15% · 🎌 holiday · 🌧 rain ≥ 1 mm",
@@ -1527,16 +1529,16 @@ function volumeStore() {
   // hourly seat occupancy (Point 2026-10-07, replaces the daypart utilization)
   h += occupancyCard();
   // dead-hour value (Point 2026-10-08): persons/฿ needed to lift quiet hours to a target occupancy
-  h += deadCard();
   // (b) dead hours: revenue by hour, 16-20 band highlighted
   const byH = group(rs, r => r[a.hour]), totNet = sum(rs, r => r[a.net]);
   let hmax = 0; for (const [, v] of byH) hmax = Math.max(hmax, sum(v, r => r[a.net]));
-  let hb = '', band = 0;
+  let hb = '', band = 0, deadNet = 0;
   for (const hh of hours) {
     const v = sum(byH.get(hh) || [], r => r[a.net]), inBand = hh >= 16 && hh < 20; if (inBand) band += v;
-    hb += `<tr class="${inBand ? 'hl' : ''}"><td>${hh}:00</td><td class="n">${fmt(v)}</td><td>${barCell(v, hmax, pct(div(v, totNet)))}</td></tr>`;
+    const dead = DEAD_H.includes(hh); if (dead) deadNet += v;   // dead hours = same set as the opportunity lever
+    hb += `<tr class="${dead ? 'hl' : ''}"><td>${hh}:00${dead ? ' <span class="muted">●</span>' : ''}</td><td class="n">${fmt(v)}</td><td>${barCell(v, hmax, pct(div(v, totNet)))}</td></tr>`;
   }
-  h += `<div class="card"><b>${t('v_dead')}</b><div class="note">${t('v_band', pct(div(band, totNet)), fmt(band))}</div>` +
+  h += `<div class="card"><b>${t('v_dead')}</b><div class="note">${t('v_dead_share', pct(div(deadNet, totNet)), fmt(deadNet))} · ${t('v_band', pct(div(band, totNet)), fmt(band))}</div>` +
     table(th([t('hour'), [t('net')], t('pct_day')]), hb) + '</div>';
   // (c) expected vs actual from calendar
   h += '<div class="card"><b>' + t('v_exp') + '</b> <span class="note">' + t('v_exp_note') + '</span>' + calendarTable(calDays(rows('calendar', {ch:STORE})), 120) + '</div>';
@@ -1554,6 +1556,7 @@ function volumeStore() {
 }
 // ---- hourly seat occupancy (feed `occupancy`, dine-in only; sales_tables.build_occupancy)
 const OCC_H = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+const DEAD_H = [10, 14, 15, 16, 20];   // dead hours (Point 2026-10-08): off-peak set used by the opportunity lever; 11 = early lunch
 const occGrp = hh => hh >= 11 && hh <= 13 ? 'g1' : hh >= 17 && hh <= 20 ? 'g2' : '';
 const occGs = hh => hh === 11 || hh === 14 || hh === 17 ? ' gs' : '';
 function occBg(u) {

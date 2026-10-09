@@ -331,6 +331,14 @@ const T = {
     "u_low": "ว่าง",
     "u_full": "เต็ม",
     "v_dead": "(ข) ยอดสุทธิรายชั่วโมง — ชั่วโมงเงียบไฮไลต์",
+    "v_sum": "สรุปรายสาขา (เฉลี่ยต่อวันเปิด)",
+    "v_sum_note": "ลูกค้า = ชามหลัก + เซต ของบิลทานที่ร้าน · เวลานั่ง = เปิดบิล → ปิดบิล · รอบ/ที่นั่ง/วัน = ลูกค้าทานที่ร้านต่อวัน ÷ ที่นั่ง · พระราม 9 ไม่มีเวลานั่ง (คีย์บิลตอนจ่าย)",
+    "seats_short": "ที่นั่ง",
+    "net_day": "ยอดสุทธิ/วัน",
+    "bills_day": "บิล/วัน",
+    "guests_day": "ลูกค้าทานที่ร้าน/วัน",
+    "turns_day": "รอบ/ที่นั่ง/วัน",
+    "open_days": "วันเปิด",
     "v_band": "แถบโปร 16:00–20:00 = {0} ของยอดทั้งวัน (฿{1})",
     "v_dead_share": "● ชั่วโมงเงียบ (10, 14–16, 20 น.) = {0} ของยอดทั้งวัน (฿{1})",
     "pct_day": "% ของวัน",
@@ -799,6 +807,14 @@ const T = {
     "u_low": "Quiet",
     "u_full": "Full",
     "v_dead": "(b) Net sales by hour — dead hours highlighted",
+    "v_sum": "Branch summary (average per open day)",
+    "v_sum_note": "Guests = main bowls + sets on dine-in bills · dwell = bill opened → closed · turns/seat/day = dine-in guests per day ÷ seats · Rama 9 has no dwell (bills keyed at payment)",
+    "seats_short": "seats",
+    "net_day": "Net / day",
+    "bills_day": "Bills / day",
+    "guests_day": "Dine-in guests / day",
+    "turns_day": "Turns / seat / day",
+    "open_days": "Open days",
     "v_band": "16:00–20:00 promo band = {0} of the day’s sales (฿{1})",
     "v_dead_share": "● Dead hours (10, 14–16, 20) = {0} of the day’s sales (฿{1})",
     "pct_day": "% of day",
@@ -1496,6 +1512,26 @@ window.addEventListener('resize', () => { clearTimeout(_rsz); _rsz = setTimeout(
 function renderVolume() {
   document.getElementById('volume').innerHTML = '<h2>' + t('h_volume') + '</h2>' + rangeNote() + dual(volumeStore, volumeGrab);
 }
+// (0) branch summary strip for section 2 (Point 2026-10-09): per branch over the selected range —
+// net/day, bills/day, dine-in guests/day (persons = bowls + sets), avg dwell (min, bill open→close,
+// session-weighted), and daily seat turnover = dine-in guests/day ÷ seats (how many times each seat
+// is used per day). Open days = dates with >= 1 dine-in order (same rule as occupancy).
+function volumeSummary() {
+  const tr = A('tree'), trs = rows('tree', {ch:STORE}), dw = A('dwell'), dwr = rows('dwell');
+  let b = '';
+  for (const id of selBranches()) {
+    const lr = trs.filter(r => r[tr.loc] === id); if (!lr.length) continue;
+    const days = new Set(lr.filter(r => r[tr.orders] > 0).map(r => r[tr.d])).size || 1;
+    const net = sum(lr, r => r[tr.net]), bills = sum(lr, r => r[tr.orders]);
+    const din = lr.filter(r => r[tr.channel] === 'dine_in'), guests = sum(din, r => r[tr.main] + (r[tr.set] || 0));
+    const dx = dwr.filter(r => r[dw.loc] === id), ns = sum(dx, r => r[dw.sessions]), dwell = div(sum(dx, r => r[dw.avg_min] * r[dw.sessions]), ns);
+    const seats = B[id] && B[id].seats, turns = seats ? guests / days / seats : null;
+    b += `<tr><td><b>${bn(id)}</b>${seats ? ` <span class="muted">(${seats})</span>` : ''}</td><td class="n">${fmt(net / days)}</td><td class="n">${fmt(bills / days, 1)}</td>` +
+      `<td class="n">${fmt(guests / days)}</td><td class="n">${id === 'rama9' ? '<span class="muted">–</span>' : fmt(dwell, 1)}</td><td class="n"><b>${turns == null ? '–' : fmt(turns, 2)}</b></td><td class="n muted">${days}</td></tr>`;
+  }
+  return `<div class="card"><b>${t('v_sum')}</b><div class="note">${t('v_sum_note')}</div>` +
+    table(th([t('branch') + ' (' + t('seats_short') + ')', [t('net_day')], [t('bills_day')], [t('guests_day')], [t('avg_min')], [t('turns_day')], [t('open_days')]]), b) + '</div>';
+}
 function volumeStore() {
   const a = A('hourly'), rs = rows('hourly', {ch:STORE});
   // pax-trust rule (same as tree): keyed pax only on trusted branch-days, else main bowls
@@ -1503,6 +1539,7 @@ function volumeStore() {
   if (!rs.length) return '<div class="card muted">' + t('no_data') + '</div>';
   const hours = [...new Set(rs.map(r => r[a.hour]))].sort((x, y) => x - y);
   const metric = S.heat, byLoc = group(rs, r => r[a.loc]);
+  let h = volumeSummary();
   // (a) heatmap hour x branch, average per trading day
   let max = 0; const cells = {};
   for (const [id, lr] of byLoc) {
@@ -1524,7 +1561,7 @@ function volumeStore() {
     }).join('') + '</tr>';
   }
   const seg = (act, opts, cur) => '<span class="seg">' + opts.map(([k, l]) => `<button data-act="${act}" data-k="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join('') + '</span>';
-  let h = '<div class="card"><b>' + t('v_heat') + '</b> ' +
+  h += '<div class="card"><b>' + t('v_heat') + '</b> ' +
     seg('heat', [['orders', t('orders')], ['pax', t('k_cust')], ['net', t('net')]], metric) + ' ' +
     seg('heatu', [['n', t('hu_n')], ['row', t('hu_row')]], U) +
     '<div class="note">' + t('v_avgday') + (U === 'row' ? ' · ' + t('hu_row_note') : '') + '</div>' +

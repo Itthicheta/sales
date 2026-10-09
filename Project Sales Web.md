@@ -500,7 +500,23 @@ Final-review rulings (2026-10-06):
 - Grab 9.4 lost orders read feed grab.cancels (category 'other', status ยกเลิก); ฿ lost is an estimate =
   branch-month avg order value from grab_daily.
 - (superseded 2026-10-08 by calculator v2: drink value = tier difference from water) Opportunity drink price was per tier.
-- party_size: pax > 20 on one order = keying junk -> bucket 'n/a'.
+- **party_size = per TABLE, not per bill (Point 2026-10-09; replaces the pax-per-bill rule):** a party =
+  a dine-in master bill + all its split children; a non-split bill and every take-away bill = its own
+  party. Master resolution (`sales_tables.build_party`, temp t_party order_id -> party_id): a split child
+  (`pos_sale_tabs.splittabname 'Split%'`, `parentsaletabid > 0`) belongs to the LATEST master tab
+  (`'Split%'`, `parentsaletabid = 0`) on the same branch + `fbtableid`, opened at or before the child, same
+  day. parentsaletabid itself is NOT trusted: ~30% of children (238/803 in 32 days) point at a sibling or
+  at themselves (e.g. Silom 7 Oct table 20, Split#2..#6 all -> tab 5090 = Split#4); where it is clean the
+  table rule agrees 100%. persons = main + set units summed over the party (min 1), NEVER keyed pax;
+  buckets 1 / 2 / 3-4 / 5+, take-away = 'n/a'. Columns unchanged (UI reads by name) but `bills` = number
+  of PARTIES, `net_thb` = party total, `main_units` = party mains; location/ym/channel/daypart = the
+  master bill's (fallback lowest order_id when the master is not a finalized order in the window).
+  Net sums identical to per-bill. Effect (Silom, dine-in, 30 days to 2026-10-09): 2,272 bills -> 1,800
+  parties, 1-person share 68.6% -> 47.5%, avg persons 1.51 -> 2.01; OCC has no splits (1,712 = 1,712;
+  1-person 56% -> 62% only because bowls replace keyed pax). Section 3 card (c): party-size chart (per
+  table, % of parties) LEFT and ticket-per-bill chart RIGHT in one `.tgrid` row (stacks on narrow
+  screens), both % with the count in the tooltip. ticket_hist stays per BILL as paid (note: a split
+  table counts as several bills). Section 7 context table reads the same feed -> columns are per party.
 - grab_match only links finalized, non-voided POS tabs (no match rather than a voided one).
 - Every Backbone session runs `set time zone 'Asia/Bangkok'` (shared/backbone.py), so current_date / now()
   are Bangkok. Watermarks (mp_ops.watermarks) are normalised to UTC in get/set_watermark so loader

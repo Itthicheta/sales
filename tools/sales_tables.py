@@ -387,14 +387,69 @@ def build_pairs(cur):
 
 # ---------- Step 4: distributions, members, promo, sets ----------
 
+def build_party(cur):
+    """t_party: order_id -> party_id (Point 2026-10-09, party = per TABLE, not per bill).
+    A dine-in table that splits the bill at payment shows up as one master tab (pos_sale_tabs
+    splittabname 'Split#1', parentsaletabid = 0) plus split children ('Split#2'.., parentsaletabid > 0).
+    parentsaletabid is NOT reliable (~30% of children point at a sibling or at themselves — e.g. Silom
+    7 Oct table 20: Split#2..#6 all point at tab 5090 = Split#4), so a child's master = the latest
+    master tab on the SAME branch + fbtableid opened at or before the child, same day (agrees 100%
+    with parentsaletabid where that pointer is clean). party_id = the master's order_id; every other
+    order (take-away, non-split dine-in) is its own party."""
+    cur.execute("drop table if exists t_sp")
+    cur.execute(f"""
+      create temp table t_sp on commit drop as
+      select branchid, saletabid, saleid, fbtableid, parentsaletabid p, starttime
+      from mp_raw.pos_sale_tabs
+      where splittabname like 'Split%' and starttime >= (current_date - {WINDOW_DAYS + 2})::timestamp""")
+    cur.execute("create index on t_sp (branchid, fbtableid, starttime)")
+    cur.execute("analyze t_sp")
+    cur.execute("drop table if exists t_party")
+    cur.execute("""
+      create temp table t_party on commit drop as
+      with ch as (
+        select c.branchid || '-' || c.saleid order_id,
+               (select m.branchid || '-' || m.saleid from t_sp m
+                where m.branchid = c.branchid and m.fbtableid = c.fbtableid and m.p = 0
+                  and m.starttime <= c.starttime and m.starttime::date = c.starttime::date
+                order by m.starttime desc limit 1) master_id
+        from t_sp c where c.p > 0)
+      select o.order_id, coalesce(ch.master_id, o.order_id) party_id
+      from t_ord o left join ch on ch.order_id = o.order_id and o.channel = 'dine_in'""")
+    cur.execute("create index on t_party (order_id)")
+    cur.execute("select count(*), count(distinct party_id) from t_party")
+    print("    orders -> parties:", cur.fetchone())
+
+
 def build_distributions(cur):
+    # party_size (Point 2026-10-09): one row group per PARTY, not per bill — see build_party.
+    #   bills      = number of PARTIES (column name kept: the UI reads it by name)
+    #   net_thb    = party total (sum of its bills' total_thb); main_units = party main units
+    #   pax_bucket = persons = main + set units summed over the party (min 1), NEVER keyed pax:
+    #                1 / 2 / 3-4 / 5+; take-away = 'n/a' (one bill = one party)
+    #   location / ym / channel / daypart = the master bill's (fallback: lowest order_id of the party
+    #   when the master is not a finalized order in the window).
+    build_party(cur)
     rebuild(cur, "party_size",
         "location_id text, ym text, channel text, daypart text, pax_bucket text, bills int, net_thb numeric, main_units numeric",
-        """select location_id, ym, channel, daypart,
-                  case when channel<>'dine_in' or pax > 20 then 'n/a' when pax<=1 then '1' when pax=2 then '2'
-                       when pax<=4 then '3-4' else '5+' end,
-                  count(*), sum(total_thb), sum(main_units)
-           from t_ord group by 1,2,3,4,5""")
+        """with pm as (
+              select p.party_id, sum(o.total_thb) net, sum(o.main_units) mu,
+                     greatest(sum(o.main_units + o.set_units), 1) pu
+              from t_party p join t_ord o using (order_id) group by 1),
+            pa as (
+              select distinct on (p.party_id) p.party_id, o.location_id, o.ym, o.channel, o.daypart
+              from t_party p join t_ord o using (order_id)
+              order by p.party_id, (o.order_id = p.party_id) desc, o.order_id)
+           select location_id, ym, channel, daypart,
+                  case when channel <> 'dine_in' then 'n/a' when pu < 1.5 then '1' when pu < 2.5 then '2'
+                       when pu < 4.5 then '3-4' else '5+' end,
+                  count(*), sum(net), sum(mu)
+           from pm join pa using (party_id) group by 1,2,3,4,5""")
+    cur.execute("""comment on table sales_web.party_size is 'One row group per PARTY (Point 2026-10-09): party = '
+        'dine-in master bill + its split children (same branch + table, latest Split#1 master opened at or '
+        'before the child, same day); non-split and take-away bills = own party. bills = number of parties, '
+        'net_thb = party total, pax_bucket from persons = main + set units over the party (min 1; never '
+        'keyed pax), take-away = n/a. location/ym/channel/daypart = master bill''s.'""")
     rebuild(cur, "ticket_hist",
         "location_id text, ym text, channel text, thb_bucket text, bills int",
         """select location_id, ym, channel,

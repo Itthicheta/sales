@@ -56,6 +56,8 @@ tr.hl td { background:color-mix(in srgb, #e6a028 16%, transparent); }
 .bw span { font-variant-numeric:tabular-nums; min-width:46px; text-align:right; font-size:12px; }
 .stack { display:flex; height:14px; border-radius:4px; overflow:hidden; min-width:220px; }
 .stack div { height:100%; }
+.tgrid .stack { min-width:120px; }
+.tgrid td:first-child { white-space:nowrap; }
 .legend span { display:inline-flex; align-items:center; gap:4px; margin-right:10px; font-size:11.5px; }
 .legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
 .heat td.n { color:var(--fg); }
@@ -277,6 +279,9 @@ const T = {
     "main_plus_set": "ชามหลัก+เซต",
     "thb_unit": "฿/ชิ้น",
     "thb_bill": "฿/บิล",
+    "n_parties": "โต๊ะ",
+    "main_party": "ชามหลัก/โต๊ะ",
+    "thb_party": "฿/โต๊ะ",
     "main_bill": "ชามหลัก/บิล",
     "pair_bills": "บิลคู่",
     "dow": ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."],
@@ -445,8 +450,14 @@ const T = {
     "w_dead": "{0}. {1} · ชั่วโมงเงียบ (เทียบเพื่อน/ตัวเอง): {2} ≈ +฿{3}/เดือน\n",
     "party_line": "เดี่ยว {0} · คู่ {1} · กลุ่ม {2}",
     "t_party": "(ค) ขนาดกลุ่ม และ การกระจายยอดต่อบิล",
-    "party_bills": "ขนาดกลุ่ม (บิล)",
-    "tkt_bills": "ยอดต่อบิล (บิล)",
+    "party_bills": "ขนาดกลุ่ม (ต่อโต๊ะ)",
+    "tkt_bills": "ยอดต่อบิล",
+    "pct_parties": "% ของโต๊ะ",
+    "pct_bills": "% ของบิล",
+    "u_party": "โต๊ะ",
+    "u_bill": "บิล",
+    "party_note": "ต่อโต๊ะ: บิลที่แยกจ่ายรวมเป็นโต๊ะเดียว · จำนวนคน = ชามหลัก + เซต",
+    "tkt_note": "ต่อบิลที่จ่าย (โต๊ะที่แยกบิลนับหลายบิล)",
     "tg_att": "Attach ต่อมื้อหลัก (ชามหลัก + เซต) — Grab",
     "tg_att_note": "จากออเดอร์ Grab ที่จับคู่กับบิล POS ได้เท่านั้น (คอลัมน์ \"จับคู่ได้\") · นับแบบรวม = เมนู + ออปชัน + ในเซต",
     "tg_cross": "ตรวจไขว้จากเมนูขาย Grab (ทุกออเดอร์)",
@@ -755,6 +766,9 @@ const T = {
     "main_plus_set": "Bowls + sets",
     "thb_unit": "฿ / unit",
     "thb_bill": "฿ / bill",
+    "n_parties": "Parties",
+    "main_party": "Bowls / party",
+    "thb_party": "฿ / party",
     "main_bill": "Bowls / bill",
     "pair_bills": "Bills together",
     "dow": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
@@ -923,8 +937,14 @@ const T = {
     "w_dead": "{0}. {1} · quiet hours (vs peer / own best): {2} ≈ +฿{3}/month\n",
     "party_line": "Solo {0} · pairs {1} · groups {2}",
     "t_party": "(c) Party size and ticket distribution",
-    "party_bills": "Party size (bills)",
-    "tkt_bills": "Ticket per bill (bills)",
+    "party_bills": "Party size (per table)",
+    "tkt_bills": "Ticket per bill",
+    "pct_parties": "% of parties",
+    "pct_bills": "% of bills",
+    "u_party": "parties",
+    "u_bill": "bills",
+    "party_note": "Per table: split bills merged into one party · persons = mains + sets",
+    "tkt_note": "per bill as paid (a split table counts as several bills)",
     "tg_att": "Attach % per main occasion (bowls + sets) — Grab",
     "tg_att_note": "Only Grab orders matched to a POS bill (\"Matched\" column) · counted as all = menu + option + in-set",
     "tg_cross": "Cross-check from Grab menu sales (all orders)",
@@ -1786,19 +1806,29 @@ function ticketStore() {
   const PB = ['1', '2', '3-4', '5+', 'n/a'], PC = ['#2a78d6', '#5aa0e6', '#e6a028', '#c0392b', '#aaa'];
   const tk = A('ticket'), trs = rows('ticket', {ch});
   const TB = ['<150', '150-249', '250-399', '400-599', '600+'], TC = ['#cfe0f5', '#9cc2ec', '#5aa0e6', '#2a78d6', '#174a8a'];
-  const stack = (vals, cols) => { const s = vals.reduce((x, y) => x + y, 0) || 1; return '<div class="stack">' + vals.map((v, i) => `<div style="width:${v / s * 100}%;background:${cols[i]}" title="${pct(v / s)}"></div>`).join('') + '</div>'; };
-  let pb = '';
+  // (Point 2026-10-09) party = per TABLE (split bills merged, sales_tables.build_party), ticket = per BILL
+  // as paid; two charts side by side (.tgrid, stacks on narrow screens), both in % of rows, count in tooltip.
+  const stack = (vals, cols, labs, unit) => { const s = vals.reduce((x, y) => x + y, 0) || 1; return '<div class="stack">' + vals.map((v, i) => v ? `<div style="width:${v / s * 100}%;background:${cols[i]}" title="${labs[i]}: ${pct(v / s)} (${fmt(v)} ${unit})"></div>` : '').join('') + '</div>'; };
+  const PL = PB.map(k => k === 'n/a' ? t('unspecified') : t('n_pax', k)), TL = TB.map(k => '฿' + k);
+  let pb = '', tb = '';
   for (const id of selBranches()) {
-    const pr = prs.filter(r => r[pa.loc] === id), tr = trs.filter(r => r[tk.loc] === id); if (!pr.length && !tr.length) continue;
-    const pv = PB.map(k => sum(pr.filter(r => r[pa.bucket] === k), r => r[pa.bills]));
-    const tv = TB.map(k => sum(tr.filter(r => r[tk.bucket] === k), r => r[tk.bills]));
-    const known = pv.slice(0, 4).reduce((x, y) => x + y, 0) || 1;
-    pb += `<tr><td>${bn(id)}</td><td>${stack(pv, PC)}<div class="note">${t('party_line', pct(pv[0] / known, 0), pct(pv[1] / known, 0), pct((pv[2] + pv[3]) / known, 0))}</div></td><td>${stack(tv, TC)}</td></tr>`;
+    const pr = prs.filter(r => r[pa.loc] === id), tr = trs.filter(r => r[tk.loc] === id);
+    if (pr.length) {
+      const pv = PB.map(k => sum(pr.filter(r => r[pa.bucket] === k), r => r[pa.bills]));
+      const known = pv.slice(0, 4).reduce((x, y) => x + y, 0) || 1;
+      pb += `<tr><td>${bn(id)}</td><td>${stack(pv, PC, PL, t('u_party'))}<div class="note">${t('party_line', pct(pv[0] / known, 0), pct(pv[1] / known, 0), pct((pv[2] + pv[3]) / known, 0))}</div></td></tr>`;
+    }
+    if (tr.length) {
+      const tv = TB.map(k => sum(tr.filter(r => r[tk.bucket] === k), r => r[tk.bills]));
+      const tt = tv.reduce((x, y) => x + y, 0) || 1;
+      tb += `<tr><td>${bn(id)}</td><td>${stack(tv, TC, TL, t('u_bill'))}<div class="note">${TB.map((k, i) => `${k} ${pct(tv[i] / tt, 0)}`).join(' · ')}</div></td></tr>`;
+    }
   }
-  h += '<div class="card"><b>' + t('t_party') + '</b>' + monthNote +
-    '<div class="legend">' + PB.map((k, i) => `<span><i style="background:${PC[i]}"></i>${k === 'n/a' ? t('unspecified') : t('n_pax', k)}</span>`).join('') + ' | ' +
-    TB.map((k, i) => `<span><i style="background:${TC[i]}"></i>฿${k}</span>`).join('') + '</div>' +
-    table(th([t('branch'), t('party_bills'), t('tkt_bills')]), pb) + '</div>';
+  const leg = (labs, cols) => '<div class="legend">' + labs.map((l, i) => `<span><i style="background:${cols[i]}"></i>${l}</span>`).join('') + '</div>';
+  h += '<div class="card"><b>' + t('t_party') + '</b>' + monthNote + '<div class="tgrid">' +
+    '<div><div class="ttl">' + t('party_bills') + '</div>' + leg(PL, PC) + table(th([t('branch'), t('pct_parties')]), pb) + '<div class="note">' + t('party_note') + '</div></div>' +
+    '<div><div class="ttl">' + t('tkt_bills') + '</div>' + leg(TL, TC) + table(th([t('branch'), t('pct_bills')]), tb) + '<div class="note">' + t('tkt_note') + '</div></div>' +
+    '</div></div>';
   return h;
 }
 // ---- opportunity calculator v2 (feed `opportunity`, sales_tables.build_opportunity; Point 2026-10-08)
@@ -2267,7 +2297,7 @@ function insightsBody() {
   const tc = A('tree'), tr = rows('tree', {ch:STORE});
   let tb = '';
   for (const dp of DP_ORDER) { const s = treeAgg(tr.filter(r => r[tc.daypart] === dp)); tb += `<tr><td>${DP[dp]}</td><td class="n">${fmt(occ(s))}</td>` + ATT.map(([k]) => `<td class="n">${pct(div(s[k], occ(s)))}</td>`).join('') + '</tr>'; }
-  h += '<div class="card"><b>' + t('i_ctx') + '</b>' + monthNote + table(th([t('daypart'), t('party_size'), [t('bills')], [t('main_bill')], [t('thb_bill')], [t('thb_main')]]), pbody) +
+  h += '<div class="card"><b>' + t('i_ctx') + '</b>' + monthNote + table(th([t('daypart'), t('party_size'), [t('n_parties')], [t('main_party')], [t('thb_party')], [t('thb_main')]]), pbody) +
     '<h3>' + t('i_att_dp') + '</h3>' + table(th([t('daypart'), [t('main_plus_set')], ...ATT.map(x => [x[1]])]), tb) + '</div>';
   return h;
 }

@@ -109,7 +109,9 @@ def build_base(cur):
             tier from the mapped item). Attach รวม = all three; อัพเซล = menu + option;
             ในเซต = set. NB option thb also sits inside the parent line's gross, so
             category thb is for unit prices only — never add it to net.
-    t_ord   one row per order: t_o scalars + unit/thb sums by category from t_units."""
+    t_ord   one row per order: t_o scalars + unit/thb sums by category from t_units.
+    t_party order_id -> party_id (build_party): THE one definition of a party (split children ->
+            master by branch + table + time). Used by party_size and occupancy."""
     cur.execute(f"""
       create temp table t_o on commit drop as
       select o.order_id, o.location_id, o.business_date, o.channel, o.pax,
@@ -216,6 +218,7 @@ def build_base(cur):
       left join ua on ua.order_id = o.order_id
       left join b2 on b2.order_id = o.order_id""")
     cur.execute("analyze t_o; analyze t_li; analyze t_so; analyze t_units; analyze t_ord")
+    build_party(cur)   # shared party definition (t_party): party_size + occupancy
     cur.execute("select (select count(*) from t_o), (select count(*) from t_li), (select count(*) from t_so), (select count(*) from t_units)")
     print("  base: %s orders, %s lines, %s options, %s unit rows" % cur.fetchone())
 
@@ -422,14 +425,13 @@ def build_party(cur):
 
 
 def build_distributions(cur):
-    # party_size (Point 2026-10-09): one row group per PARTY, not per bill — see build_party.
+    # party_size (Point 2026-10-09): one row group per PARTY, not per bill — t_party, see build_party.
     #   bills      = number of PARTIES (column name kept: the UI reads it by name)
     #   net_thb    = party total (sum of its bills' total_thb); main_units = party main units
     #   pax_bucket = persons = main + set units summed over the party (min 1), NEVER keyed pax:
     #                1 / 2 / 3-4 / 5+; take-away = 'n/a' (one bill = one party)
     #   location / ym / channel / daypart = the master bill's (fallback: lowest order_id of the party
     #   when the master is not a finalized order in the window).
-    build_party(cur)
     rebuild(cur, "party_size",
         "location_id text, ym text, channel text, daypart text, pax_bucket text, bills int, net_thb numeric, main_units numeric",
         """with pm as (
@@ -943,8 +945,8 @@ def build_occupancy(cur):
     One row per live branch x trading day (any dine-in order) x hour, hours = sales_web.seats
     open_hour..close_hour clipped to 10-20. Per dine-in order (finalized, not voided — t_ord):
       interval  = [opened_at, closed_at] (Bangkok); if either is missing ->
-                  mp_clean.table_sessions seated_at/left_at. SPLIT CHILDREN (pos_sale_tabs
-                  parentsaletabid > 0, splittabname 'Split%') are opened at the moment of the
+                  mp_clean.table_sessions seated_at/left_at. SPLIT CHILDREN (t_party, build_party:
+                  matched to their master by branch + table + time, NOT by parentsaletabid) are opened at the moment of the
                   split (dwell ~0-1 min), so they start at their MASTER tab's opened_at — without
                   this ~40% of Silom's lunch bills (one per person paying) fell under the 3-min
                   floor and their customers vanished.
@@ -983,14 +985,10 @@ def build_occupancy(cur):
         with ts as (
               select order_id, min(seated_at) seated_at, max(left_at) left_at
               from mp_clean.table_sessions where not coalesce(is_cancelled, false) group by 1),
-            sp as (   -- split child -> its master order's opened_at
-              select st.branchid || '-' || st.saleid order_id, min(mo.opened_at) master_open
-              from mp_raw.pos_sale_tabs st
-              join mp_raw.pos_sale_tabs m on m.branchid = st.branchid and m.saletabid = st.parentsaletabid
-              join mp_clean.orders mo on mo.order_id = m.branchid || '-' || m.saleid
-              where st.parentsaletabid > 0 and st.splittabname like 'Split%'
-                and st.starttime >= (current_date - {WINDOW_DAYS + 2})::timestamp
-              group by 1),
+            sp as (   -- split child -> its master order's opened_at (shared t_party, build_party)
+              select p.order_id, mo.opened_at master_open
+              from t_party p join mp_clean.orders mo on mo.order_id = p.party_id
+              where p.party_id <> p.order_id),
             iv as (
               select t.order_id, t.location_id, t.business_date,
                      case when mo.opened_at is not null and mo.closed_at is not null

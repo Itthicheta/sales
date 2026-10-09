@@ -145,8 +145,8 @@ is POS-native and already mirrored in the backbone.
     dine-in, finalized, not voided, live branches, 120 days; one row per branch × trading day × hour,
     hours = sales_web.seats open_hour..close_hour clipped to 10–20 (Rama9 10–16). See the 2026-10-08 addendum below: late-keyed bills are now imputed, not dropped, and the headline is the peak 10-min slot.
     Per order: interval = [opened_at, closed_at] Bangkok (fallback table_sessions seated_at/left_at if
-    either is missing); **split children** (`pos_sale_tabs.parentsaletabid > 0`, splittabname 'Split%')
-    start at their MASTER tab's opened_at (they are opened at the moment of the split, ~1 min, and were
+    either is missing); **split children** (`pos_sale_tabs` splittabname 'Split%', master matched by
+    branch + table + time via t_party — see "Split children" below) start at their MASTER tab's opened_at (they are opened at the moment of the split, ~1 min, and were
     ~40% of Silom's lunch bills — one bill per person paying); intervals < 3 or > 240 min dropped.
     persons = main_units + set_units of the order (≥ 1), ALWAYS — keyed pax and pax_trust are NOT used
     (Point 2026-10-07, see Key design decisions).
@@ -500,6 +500,14 @@ Final-review rulings (2026-10-06):
 - Grab 9.4 lost orders read feed grab.cancels (category 'other', status ยกเลิก); ฿ lost is an estimate =
   branch-month avg order value from grab_daily.
 - (superseded 2026-10-08 by calculator v2: drink value = tier difference from water) Opportunity drink price was per tier.
+- **Split children: POS parent link unreliable (~30%); matched by table + time** (2026-10-09). ONE shared
+  definition: temp `t_party` (order_id -> party_id), built once in `build_base` by `build_party`, used by
+  party_size AND occupancy (split child's start = its master's opened_at). `parentsaletabid` is no
+  longer read anywhere. Occupancy effect (12:00 weekdays, 30 days, headline % before -> after): Silom
+  74.3 -> 72.4, Gaysorn 67.2 -> 68.2, All Seasons 71.1 -> 71.4, OCC / Sathorn / Rama 9 unchanged
+  (no mis-linked splits); measured (seat-minute) Silom 62.9 -> 66.6, Gaysorn 36.3 -> 39.5. Dropped
+  (< 3 min) intervals 372 -> 62. Dwell (table_sessions) and pair/attach (t_li minus
+  mp_metrics.split_dupe_lines, line-level de-dup) never used the parent link, so they need no party.
 - **party_size = per TABLE, not per bill (Point 2026-10-09; replaces the pax-per-bill rule):** a party =
   a dine-in master bill + all its split children; a non-split bill and every take-away bill = its own
   party. Master resolution (`sales_tables.build_party`, temp t_party order_id -> party_id): a split child

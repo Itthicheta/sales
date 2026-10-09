@@ -47,8 +47,8 @@ from sales_tables import (OPTION_ITEM_GROUPS_RE, WATER_MAX,  # noqa: E402
                                 PAID_BEV_MAX, free_item_sql, choice_key_sql)  # one home for Point's rules
 
 OUT = Path(__file__).resolve().parent.parent / "site" / "data" / "data.json"
-BUDGET_MB = 8.0
-PAIRS_TOP_N = 6      # top-N items per (loc, family) by bills_both, unioned across branches. 2026-10-09: uncut 1.74 MB -> payload 8.68 MB; per-loc top 25 8.53 MB; union top 10 8.23; top 6 = 7.93 MB
+BUDGET_MB = 10.0   # raised 2026-10-09 (gzip transfer ~0.7 MB; dashboard app serves 8.7 MB fine)
+PAIRS_TOP_N = 50      # top-N items per (loc, family) by bills_both, unioned across branches. 2026-10-09: uncut 1.74 MB -> payload 8.68 MB; per-loc top 25 8.53 MB; union top 10 8.23; top 6 = 7.93 MB
 MONEY = {"gross", "disc", "net", "opt_thb", "main_thb", "bev_thb", "side_thb", "top_thb", "des_thb",
          "thb", "price", "paid_thb", "menu_thb", "expected", "uplift", "avg_thb", "avg",
          "comm", "mkt", "payout", "spend", "sales", "bev_paid_thb", "bev_premium_thb",

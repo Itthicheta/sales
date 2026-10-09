@@ -283,13 +283,26 @@ is POS-native and already mirrored in the backbone.
     เป้า (ตัวเองดีสุด: x%, สัปดาห์ของ dd/mm) · ช่องว่าง (pp) · มื้อ/30วัน · ฿/หน่วย · +฿/เดือน; the target used is
     bold; click → sentence per lever type (generic / bev conversion / tradeup / set / dead_hours, TH+EN);
     muted methodology note. Headline total = all rows (dead hours benchmarked like the rest).
-  - **Menu-pair scripts (card b2):** `sales_web.pair_attach`(location_id, channel, main_family, item,
-    bills_main, bills_both, rate, item_price_thb): last 30 full days, in-store, per main family (as tradeup;
-    non-variant mains = code-less name) × side / paid-or-premium drink / dessert item (menu lines + merged
-    paid option picks; set picks and water out); rate = bills with both ÷ bills with the main. Feed
-    `pairs_menu` = top 300 rows per branch by bills_both. UI sums channels, compares each selected office
-    branch with the best OTHER office branch (both ≥ 30 main bills), ฿ = gap × main bills × item price,
-    lists the 10 biggest as "ต้มยำแห้ง + ซุปบ๊วย: สีลม 31% · OCC 18% → ถ้า OCC ทำได้เท่าสีลม = +฿X/เดือน".
+  - **Menu-pair scripts (card b2; weekly grain 2026-10-09 — follows the global date range):**
+    `sales_web.pair_attach`(location_id, channel, week_start, main_family, item, bills_main, bills_both,
+    thb_both): in-store channels, ISO weeks (week_start = Monday of the Bangkok business_date), full weeks of
+    the 120-day base window up to yesterday; per main family (as tradeup; non-variant mains = code-less name)
+    × side / paid-or-premium drink / dessert item (menu lines + merged paid option picks; set picks and water
+    out). bills_main = bills that week with the main family, bills_both = those also with the item, thb_both
+    = ฿ of the item on those bills. No stored rate. Schema changed 2026-10-09 (table dropped + rebuilt).
+    Feed `pairs_menu` cols [loc, ch, week, family, item, bills_main, bills_both, thb_both]: weeks overlapping
+    the 90-day payload window (week ≥ today−96), (loc, family, week) with bills_main ≥ 10 (summed over
+    channels), bills_both ≥ 1, and only items in the top `PAIRS_TOP_N` = 6 per (loc, family) by total
+    bills_both — UNIONED across branches (an item kept at any branch is kept at every branch; a per-branch
+    cut made laggards read a false 0%). Size 2026-10-09: 7,592 rows / 0.99 MB, payload 7.93 MB (uncut 1.74 MB
+    → 8.68 MB; per-branch top 25 → 8.53; union top 10 → 8.23 — all over the 8 MB budget).
+    UI: sums the weeks whose Monday is inside the selected range ("สัปดาห์ที่ตกในช่วงวันที่ที่เลือก"; day-type
+    filter ignored, said in the note), the section's channel switch (all / dine-in / take-away) and selected
+    branches; rate = Σboth ÷ Σmain per branch × family × item; compares each selected office branch with the
+    best OTHER office branch (both ≥ 30 main bills; Rama 9 excluded); ฿ = gap × main bills × (thb_both ÷
+    bills_both of the better branch, fallback own) × 30 ÷ full days covered by those weeks (→ ฿/month);
+    muted line "N สัปดาห์: first Monday – last Sunday"; lists the 10 biggest as "ต้มยำแห้ง + ตำเส้นเล็ก:
+    ออลซีซั่นส์ 12% · OCC 5% → ถ้า OCC ทำได้เท่าออลซีซั่นส์ = +฿X/เดือน". A range with no Monday → hint to widen.
   - **Section 8 digest** reads the v2 table (top 3 by uplift; dead_hours rows get their own line).
 - **Section 2 — dead-hour value card (2026-10-08)** under the occupancy card. Mode buttons
   **เพื่อน / Peer (DEFAULT)** · 40% · 50% · 60% (state `S.deadT`, 'peer' or a number). Peer mode = feed

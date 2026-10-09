@@ -423,7 +423,9 @@ const T = {
     "tradeup": "อัพเกรดทรงเครื่อง",
     "dead_lever": "ชั่วโมงเงียบ",
     "t_pairs_menu": "สคริปต์คู่เมนู",
-    "pm_note": "30 วันเต็มล่าสุด · ในร้าน (ทานที่ร้าน + กลับบ้าน) · % = บิลที่มีทั้งคู่ ÷ บิลที่มีเมนูหลักนั้น · เทียบกับสาขาออฟฟิศที่ทำได้ดีที่สุด (≥30 บิล) · ฿ = ช่องว่าง × บิลเมนูหลัก × ราคาเฉลี่ยของรายการ · 10 อันดับ (ไม่รวมพระราม 9 — ไม่มีสาขาเพื่อน)",
+    "pm_note": "สัปดาห์ที่ตกในช่วงวันที่ที่เลือก (สัปดาห์ จ.–อา. ที่วันจันทร์อยู่ในช่วง · ไม่ใช้ตัวกรองประเภทวัน — ข้อมูลรายสัปดาห์) · ในร้าน ตามปุ่มช่องทางด้านบน · % = บิลที่มีทั้งคู่ ÷ บิลที่มีเมนูหลักนั้น · เทียบกับสาขาออฟฟิศที่ทำได้ดีที่สุด (≥30 บิล) · ฿ = ช่องว่าง × บิลเมนูหลัก × ฿ ของรายการต่อบิล (ของสาขาที่ดีกว่า) ปรับเป็นต่อ 30 วัน · 10 อันดับ (ไม่รวมพระราม 9 — ไม่มีสาขาเพื่อน)",
+    "pm_weeks": "{0} สัปดาห์: {1} – {2}",
+    "pm_noweek": "ไม่มีวันจันทร์ในช่วงที่เลือก — ขยายช่วงวันที่",
     "pm_line": "<b>{0} + {1}</b>: {2} {3} · {4} {5} → ถ้า {4} ทำได้เท่า{2} = <b>+฿{6}/เดือน</b>",
     "t_dead_val": "มูลค่าชั่วโมงเงียบ (เติมที่นั่งให้ถึงเป้า)",
     "dead_target": "เป้า occupancy",
@@ -899,7 +901,9 @@ const T = {
     "tradeup": "Deluxe upgrade",
     "dead_lever": "Quiet hours",
     "t_pairs_menu": "Menu-pair scripts",
-    "pm_note": "Last 30 full days · in-store (dine-in + take-away) · % = bills with both ÷ bills with that main · compared with the best office branch (≥30 bills) · ฿ = gap × main bills × item avg price · top 10 (Rama 9 excluded — no peers)",
+    "pm_note": "Weeks starting inside the selected range (Mon–Sun weeks whose Monday is in the range · day-type filter not applied — weekly data) · in-store, per the channel switch above · % = bills with both ÷ bills with that main · compared with the best office branch (≥30 bills) · ฿ = gap × main bills × item ฿ per bill (better branch's) scaled to 30 days · top 10 (Rama 9 excluded — no peers)",
+    "pm_weeks": "{0} weeks: {1} – {2}",
+    "pm_noweek": "No Monday in the selected range — widen the dates",
     "pm_line": "<b>{0} + {1}</b>: {2} {3} · {4} {5} → if {4} matched {2} = <b>+฿{6}/month</b>",
     "t_dead_val": "Quiet-hour value (fill seats to a target)",
     "dead_target": "Occupancy target",
@@ -1776,7 +1780,7 @@ function ticketStore() {
     '<div class="note">' + t('t_att_note') + '</div>' +
     table(th([t('branch'), [t('main_plus_set')], ...ATT.map(x => [x[1]])]), b, 'heat') + '</div>';
   // (b) opportunity calculator v2 (Point 2026-10-08) + (b2) menu-pair scripts
-  h += oppCard() + pairCard();
+  h += oppCard() + pairCard(ch);
   // (c) party size mix + ticket histogram
   const pa = A('party'), prs = rows('party', {ch});
   const PB = ['1', '2', '3-4', '5+', 'n/a'], PC = ['#2a78d6', '#5aa0e6', '#e6a028', '#c0392b', '#aaa'];
@@ -1843,19 +1847,27 @@ function oppCard() {
     table(th([t('branch'), t('channel'), t('lever'), [t('now')], [t('opp_h_peer')], [t('opp_h_own')], [t('opp_h_gap')], [t('opp_h_meals')], [t('opp_h_val')], [t('plus_month')]]), ob) +
     `<div class="note muted">${t('opp_method')}</div></div>`;
 }
-// ---- menu-pair scripts (feed `pairs_menu`, sales_tables.build_pair_attach): main family x item,
-// rate = bills with both / bills with the main, last 30 full days, in-store channels summed.
-// For each selected office branch: gap vs the best OTHER office branch (both need >= 30 main bills);
-// ฿ = gap x the branch's main bills x item price. Rama 9 has no peers -> not scripted.
-function pairCard() {
+// ---- menu-pair scripts (feed `pairs_menu`, sales_tables.build_pair_attach; weekly grain 2026-10-09):
+// main family x item per branch x in-store channel x ISO week. Sums bills_main / bills_both / thb_both over
+// the weeks whose Monday falls inside the selected range (day-type filter ignored — weekly grain), the
+// section's channel switch, and the selected branches; rate = both / main. For each selected office branch:
+// gap vs the best OTHER office branch (both need >= 30 main bills); ฿ = gap x the branch's main bills x item
+// ฿ per bill (thb_both / bills_both of the better branch, fallback own), scaled to 30 days of the weeks'
+// covered full days. Rama 9 has no peers -> not scripted.
+function pairCard(ch) {
   if (!D.cols.pairs_menu) return '';
-  const p = A('pairs_menu'), all = get('pairs_menu'), fb = {}, ag = {};
-  for (const r of all) {   // family bills per loc (sum over channels; same for every item row of a loc|ch|fam)
-    fb[r[p.loc] + '|' + r[p.channel] + '|' + r[p.fam]] = r[p.bills_main];
-    const k = r[p.loc] + '|' + r[p.fam] + '|' + r[p.item], x = ag[k] || (ag[k] = {loc:r[p.loc], fam:r[p.fam], item:r[p.item], both:0, thb:0});
-    x.both += r[p.bills_both]; x.thb += (r[p.price] || 0) * r[p.bills_both];
+  const p = A('pairs_menu'), lastFull = addDays(D.generated_at.slice(0, 10), -1), ag = {}, fam = {}, fb = new Set(), wk = new Set();
+  for (const r of get('pairs_menu')) {
+    const w = r[p.week];
+    if (w < F.from || w > F.to || !ch.includes(r[p.ch])) continue;
+    wk.add(w);
+    const fk = r[p.loc] + '|' + r[p.family], bk = fk + '|' + r[p.ch] + '|' + w;   // bills_main repeats on every item row
+    if (!fb.has(bk)) { fb.add(bk); fam[fk] = (fam[fk] || 0) + r[p.bills_main]; }
+    const k = fk + '|' + r[p.item], x = ag[k] || (ag[k] = {loc:r[p.loc], fam:r[p.family], item:r[p.item], both:0, thb:0});
+    x.both += r[p.bills_both]; x.thb += +r[p.thb_both] || 0;
   }
-  const fam = {}; for (const [k, v] of Object.entries(fb)) { const [l, , f] = k.split('|'); fam[l + '|' + f] = (fam[l + '|' + f] || 0) + v; }
+  let days = 0; for (const w of wk) days += Math.max(0, Math.min(7, (Date.parse(lastFull) - Date.parse(w)) / 864e5 + 1));
+  const toMonth = days ? 30 / days : 0;
   const MIN = 30, office = D.branches.map(b => b.id).filter(id => id !== 'rama9');
   const byPair = group(Object.values(ag), x => x.fam + '|' + x.item), out = [];
   for (const id of selBranches().filter(id => office.includes(id))) {
@@ -1865,13 +1877,15 @@ function pairCard() {
       let best = null;
       for (const x of xs) { if (x.loc === id || !office.includes(x.loc)) continue; const n = fam[x.loc + '|' + f] || 0; if (n < MIN) continue; const r = x.both / n; if (!best || r > best.rate) best = {loc:x.loc, rate:r, price:x.thb / x.both}; }
       if (!best || best.rate <= rate) continue;
-      const price = me && me.both ? me.thb / me.both : best.price;
-      out.push({id, f, it, rate, best, nb, v:(best.rate - rate) * nb * price});
+      const price = best.price || (me && me.both ? me.thb / me.both : 0);
+      out.push({id, f, it, rate, best, nb, v:(best.rate - rate) * nb * price * toMonth});
     }
   }
   out.sort((a, b) => b.v - a.v);
   const lines = out.slice(0, 10).map(x => `<li>${t('pm_line', esc(x.f), esc(x.it), bn(x.best.loc), pct(x.best.rate, 0), bn(x.id), pct(x.rate, 0), fmt(x.v))}</li>`).join('');
+  const wl = [...wk].sort();
   return `<div class="card"><b>${t('t_pairs_menu')}</b><div class="note">${t('pm_note')}</div>` +
+    `<div class="note muted">${wl.length ? t('pm_weeks', wl.length, wl[0], addDays(wl[wl.length - 1], 6)) : t('pm_noweek')}</div>` +
     (lines ? `<ol class="pm">${lines}</ol>` : `<div class="muted">${t('no_data')}</div>`) + '</div>';
 }
 // ---- dead hours, benchmarked (feed `dead_hours`, sales_tables.build_dead_hours; ruling 2026-10-08):

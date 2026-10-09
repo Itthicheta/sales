@@ -528,33 +528,38 @@ def build_set_incremental(cur):
 
 
 def build_pair_attach(cur):
-    """Menu-pair scripts (Point 2026-10-08): for each main family x side / paid-or-premium drink /
-    dessert item (upsell layer = menu lines + merged paid option picks; set picks and water out),
-    per branch x in-store channel over the last OPP_DAYS full days:
-    rate = bills with both / bills with the main family. item_price_thb = that item's avg ฿/unit at
-    the branch (upsell layer) — the UI's ฿ for 'if branch X matched branch Y'."""
+    """Menu-pair scripts (Point 2026-10-08; weekly grain 2026-10-09 so the card follows the global
+    date range). For each main family x side / paid-or-premium drink / dessert item (upsell layer =
+    menu lines + merged paid option picks; set picks and water out), per branch x in-store channel x
+    ISO week (week_start = Monday of the Bangkok business_date), full weeks inside the WINDOW_DAYS
+    base window up to yesterday:
+      bills_main = bills that week containing the main family
+      bills_both = those that also contain the item
+      thb_both   = ฿ of the item (upsell layer) on those bills -> UI item price = thb_both / bills_both.
+    No precomputed rate: the UI sums weeks inside the selected range and divides."""
     rebuild(cur, "pair_attach",
-        """location_id text, channel text, main_family text, item text, bills_main int, bills_both int,
-           rate numeric, item_price_thb numeric""",
+        """location_id text, channel text, week_start date, main_family text, item text,
+           bills_main int, bills_both int, thb_both numeric""",
         f"""with u as (
-              select u.order_id, u.location_id, u.channel, u.itemid, u.tree_category, u.bev_tier,
-                     u.qty, u.thb, it.name_th
+              select u.order_id, u.location_id, u.channel, u.business_date, u.tree_category, u.bev_tier,
+                     u.thb, it.name_th
               from t_units u join mp_clean.items it on it.itemid = u.itemid
-              where u.{OPP_WIN} and u.channel in {INSTORE} and u.source <> 'set'),
-            mf as (select distinct order_id, location_id, channel, {family_sql('name_th')} fam
+              where u.business_date >= (date_trunc('week', current_date - {WINDOW_DAYS}) + interval '7 day')::date
+                and u.business_date <= current_date - 1
+                and u.channel in {INSTORE} and u.source <> 'set'),
+            mf as (select distinct order_id, location_id, channel,
+                          date_trunc('week', business_date)::date wk, {family_sql('name_th')} fam
                    from u where tree_category = 'main'),
-            itm as (select distinct order_id, {family_sql('name_th')} item
+            itm as (select order_id, {family_sql('name_th')} item, sum(thb) thb
                    from u where tree_category in ('side','dessert')
-                             or (tree_category = 'beverage' and bev_tier in ('paid','premium'))),
-            pr as (select location_id, {family_sql('name_th')} item, sum(thb) / nullif(sum(qty), 0) p
-                   from u where tree_category in ('side','dessert','beverage') group by 1, 2),
-            bm as (select location_id, channel, fam, count(*) n from mf group by 1, 2, 3)
-            select mf.location_id, mf.channel, mf.fam, it.item, bm.n, count(*),
-                   round(count(*)::numeric / bm.n, 4), round(pr.p, 2)
+                             or (tree_category = 'beverage' and bev_tier in ('paid','premium'))
+                   group by 1, 2),
+            bm as (select location_id, channel, wk, fam, count(*) n from mf group by 1, 2, 3, 4)
+            select mf.location_id, mf.channel, mf.wk, mf.fam, it.item, bm.n, count(*), round(sum(it.thb), 2)
             from mf join itm it on it.order_id = mf.order_id
-            join bm on bm.location_id = mf.location_id and bm.channel = mf.channel and bm.fam = mf.fam
-            left join pr on pr.location_id = mf.location_id and pr.item = it.item
-            group by mf.location_id, mf.channel, mf.fam, it.item, bm.n, pr.p""")
+            join bm on bm.location_id = mf.location_id and bm.channel = mf.channel
+                   and bm.wk = mf.wk and bm.fam = mf.fam
+            group by mf.location_id, mf.channel, mf.wk, mf.fam, it.item, bm.n""")
 
 
 def build_opportunity(cur):

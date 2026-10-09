@@ -48,10 +48,11 @@ from sales_tables import (OPTION_ITEM_GROUPS_RE, WATER_MAX,  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "site" / "data" / "data.json"
 BUDGET_MB = 8.0
+PAIRS_TOP_N = 6      # top-N items per (loc, family) by bills_both, unioned across branches. 2026-10-09: uncut 1.74 MB -> payload 8.68 MB; per-loc top 25 8.53 MB; union top 10 8.23; top 6 = 7.93 MB
 MONEY = {"gross", "disc", "net", "opt_thb", "main_thb", "bev_thb", "side_thb", "top_thb", "des_thb",
          "thb", "price", "paid_thb", "menu_thb", "expected", "uplift", "avg_thb", "avg",
          "comm", "mkt", "payout", "spend", "sales", "bev_paid_thb", "bev_premium_thb",
-         "est_thb", "ads_thb", "adjust_thb", "set_thb", "value", "thb_day", "ticket"}   # column aliases holding THB amounts
+         "est_thb", "ads_thb", "adjust_thb", "set_thb", "value", "thb_day", "ticket", "thb_both"}   # column aliases holding THB amounts
 YM_MIN = "to_char(current_date - interval '3 months','YYYY-MM')"   # growth guard 1
 bb = Backbone(load())
 
@@ -224,14 +225,34 @@ def build():
                to_char(own_best_window,'YYYY-MM-DD') own_win, target_used target, dwell_min dwell,
                persons_day persons, thb_day, open_days days, ticket_thb ticket
         from sales_web.dead_hours order by location_id, hour""")
-    # menu-pair scripts (2026-10-08): top 300 rows per branch by bills_both
-    data["pairs_menu"] = feed("pairs_menu", """
-        select loc, channel, fam, item, bills_main, bills_both, rate, price from (
-          select location_id loc, channel, main_family fam, item, bills_main, bills_both, rate,
-                 item_price_thb price,
-                 row_number() over (partition by location_id order by bills_both desc, rate desc) rk
-          from sales_web.pair_attach) x
-        where rk <= 300 order by loc, rk""")
+    # menu-pair scripts (weekly grain 2026-10-09): the UI sums weeks whose Monday is inside the range.
+    # Kept small: rows with bills_both >= 1 (by construction), (loc, family, week) with bills_main
+    # >= 10, weeks overlapping the 90-day payload window. Items are side / dessert / paid-premium
+    # beverage by construction (build_pair_attach upsell layer) — all within (side, beverage,
+    # dessert, topping). PAIRS_TOP_N (None = off) keeps only the top-N items per (loc, family)
+    # by total bills_both — the fallback if the payload goes over budget.
+    pair_cut = "" if PAIRS_TOP_N is None else f"and rk <= {PAIRS_TOP_N}"
+    data["pairs_menu"] = feed("pairs_menu", f"""
+        with f as (select location_id, main_family, week_start, sum(bills_main) bm
+                   from (select distinct location_id, channel, week_start, main_family, bills_main
+                         from sales_web.pair_attach) z group by 1, 2, 3),
+        p as (select a.* from sales_web.pair_attach a
+              join f using (location_id, main_family, week_start)
+              where f.bm >= 10 and a.bills_both >= 1 and a.week_start >= current_date - 96),
+        r0 as (select location_id, main_family, item,
+                      rank() over (partition by location_id, main_family order by sum(bills_both) desc) rk
+               from p group by 1, 2, 3),
+        -- an item kept at ANY branch is kept at EVERY branch (else the laggard's row is cut and reads 0%)
+        r as (select l.location_id, k.main_family, k.item, k.rk
+              from (select main_family, item, min(rk) rk from r0 group by 1, 2) k
+              cross join (select distinct location_id from p) l)
+        select p.location_id loc, p.channel ch, to_char(p.week_start,'YYYY-MM-DD') week,
+               p.main_family family, p.item, p.bills_main, p.bills_both, p.thb_both
+        from p join r using (location_id, main_family, item)
+        where true {pair_cut}
+        order by p.week_start, p.location_id, p.main_family, p.item, p.channel""")
+    print(f"  pairs_menu rows: {len(data['pairs_menu'])}, "
+          f"{len(json.dumps(data['pairs_menu'], ensure_ascii=False, separators=(',', ':')).encode())/1e6:.2f} MB")
 
     g = {}
     g["daily"] = feed("grab.daily", """
